@@ -68,10 +68,23 @@ void PropertiesWidget::showDevice(Device const* dev)
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Altsetting number"), QString::number(iface.altSettingNum)}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Class"), QString("%1 (%2)")
                                         .arg(iface.ifaceClass, 2, 16, QLatin1Char('0')).arg(iface.ifaceClassStr)}});
-            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Subclass"),
-                                                    QString("%1").arg(iface.ifaceSubClass, 2, 16, QLatin1Char('0'))}});
-            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Protocol"),
-                                                    QString("%1").arg(iface.protocol, 2, 16, QLatin1Char('0'))}});
+            QString subclassStr, protocolStr;
+            constexpr unsigned classHID=0x03;
+            if(iface.ifaceClass==classHID)
+            {
+                if(iface.ifaceSubClass==1)
+                    subclassStr=tr("%1 (boot interface)").arg(iface.ifaceSubClass, 2, 16, QLatin1Char('0'));
+                if(iface.protocol==1)
+                    protocolStr=QString("%1 (keyboard)").arg(iface.protocol, 2, 16, QLatin1Char('0'));
+                else if(iface.protocol==2)
+                    protocolStr=QString("%1 (mouse)").arg(iface.protocol, 2, 16, QLatin1Char('0'));
+            }
+            if(subclassStr.isNull())
+                subclassStr=QString("%1").arg(iface.ifaceSubClass, 2, 16, QLatin1Char('0'));
+            if(protocolStr.isNull())
+                protocolStr=QString("%1").arg(iface.protocol, 2, 16, QLatin1Char('0'));
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Subclass"), subclassStr}});
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Protocol"), protocolStr}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Driver"),
                                                     QString("%1").arg(iface.driver)}});
             const auto endpointsItem=new QTreeWidgetItem{QStringList{tr("Endpoints (%1)").arg(iface.numEPs)}};
