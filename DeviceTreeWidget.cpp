@@ -12,7 +12,7 @@ enum
 
 void setDevice(QTreeWidgetItem*const item, Device*const dev)
 {
-    item->setData(0,DeviceRole,reinterpret_cast<uintptr_t>(dev));
+    item->setData(0,DeviceRole,reinterpret_cast<unsigned long long>(dev));
 }
 
 Device* getDevice(QTreeWidgetItem const*const item)
