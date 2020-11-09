@@ -2,9 +2,11 @@
 #include <stdio.h>
 #include <iomanip>
 #include <iostream>
+#include <QScreen>
 #include <QMenuBar>
 #include <QSplitter>
 #include <QMainWindow>
+#include <QFontMetrics>
 #include <QApplication>
 #include "DeviceTreeWidget.h"
 #include "PropertiesWidget.h"
@@ -80,7 +82,17 @@ try
     centralWidget->addWidget(treeWidget);
     centralWidget->addWidget(propsWidget);
     QMainWindow mainWindow;
+    mainWindow.setWindowTitle(QObject::tr("USB Device Tree"));
     mainWindow.setCentralWidget(centralWidget);
+    {
+        const auto screenAvailableSize = app.primaryScreen()->availableSize();
+        treeWidget->ensurePolished();
+        const QFontMetrics fm(treeWidget->font());
+        const auto fontHeight=fm.height();
+        const auto fontWidth=fm.averageCharWidth();
+        mainWindow.resize(std::min(screenAvailableSize.width(), fontWidth*120),
+                          std::min(screenAvailableSize.height(), fontHeight*50));
+    }
     mainWindow.show();
     createMenuBar(mainWindow, treeWidget);
 
