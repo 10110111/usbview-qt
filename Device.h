@@ -20,10 +20,10 @@ struct Device
 	unsigned port;
 	unsigned numDevsAtThisLevel;
 	unsigned devNum;
-    std::string speed;
+    double speed;
 	unsigned maxChildren;
 
-    std::string usbVersion;
+    QString usbVersion;
     unsigned devClass;
     QString devClassStr;
     unsigned devSubClass;

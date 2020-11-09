@@ -45,11 +45,9 @@ Device::Device(std::vector<std::string> const& descriptionLines)
             }
             break;
         case 'T':
-            char spd[11];
-            if(sscanf(line.c_str(), "T:  Bus=%u Lev=%u Prnt=%u Port=%u Cnt=%u Dev#=%u Spd=%10s MxCh=%u\n",
-                      &busNum, &level, &parentDevNum, &port, &numDevsAtThisLevel, &devNum, spd, &maxChildren) != 8)
+            if(sscanf(line.c_str(), "T:  Bus=%u Lev=%u Prnt=%u Port=%u Cnt=%u Dev#=%u Spd=%lf MxCh=%u\n",
+                      &busNum, &level, &parentDevNum, &port, &numDevsAtThisLevel, &devNum, &speed, &maxChildren) != 8)
                 throw std::invalid_argument("Failed to parse line \""+line+"\"");
-            speed=spd;
             break;
         case 'D':
             char ver[11];
