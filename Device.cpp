@@ -106,7 +106,7 @@ Device::Device(std::vector<std::string> const& descriptionLines)
         {
             Endpoint ep;
             char inOutTypeChar, type[31], unit[11];
-            if(sscanf(line.c_str(), "E:  Ad=%x(%30[^)]) Atr=%x(%30[^)]) MxPS=%u Ivl=%u%10s\n",
+            if(sscanf(line.c_str(), "E:  Ad=%x(%c) Atr=%x(%30[^)]) MxPS=%u Ivl=%u%10s\n",
                       &ep.address, &inOutTypeChar, &ep.attributes, type, &ep.maxPacketSize, &ep.intervalBetweenTransfers, unit) != 7)
                 throw std::invalid_argument("Failed to parse line \""+line+"\"");
 
