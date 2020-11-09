@@ -72,6 +72,16 @@ try
     }
     pclose(stream);
 
+    for(auto& device : devices)
+    {
+        if(!device.valid())
+        {
+            std::cerr << "Device " << std::hex << device.vendorId << ":" << device.productId << std::dec
+                      << " has invalid/incomplete description: " << device.reasonIfInvalid.toStdString() << "\n";
+            return 1;
+        }
+    }
+
     QApplication app(argc, argv);
 
     const auto topLevel=buildTree(devices);

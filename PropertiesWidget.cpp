@@ -41,12 +41,56 @@ void PropertiesWidget::showDevice(Device const* dev)
             else
                 speed=tr(u8"%1\u202fGb/s").arg(dev->speed/1000);
         }
-        addTopLevelItem(new QTreeWidgetItem{QStringList{"Speed", speed}});
+        addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Speed"), speed}});
     }
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Device class", QString("%1 (%2)").arg(dev->devClass, 2, 16, QLatin1Char('0'))
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device class"), QString("%1 (%2)").arg(dev->devClass, 2, 16, QLatin1Char('0'))
                                                                                       .arg(dev->devClassStr)}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Device subclass", QString("%1").arg(dev->devSubClass, 2, 16, QLatin1Char('0'))}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Device protocol", QString("%1").arg(dev->devProtocol, 2, 16, QLatin1Char('0'))}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Max default endpoint packet size", QString::number(dev->maxPacketSize)}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Number of configurations", QString::number(dev->numConfigs)}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device subclass"), QString("%1").arg(dev->devSubClass, 2, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device protocol"), QString("%1").arg(dev->devProtocol, 2, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Max default endpoint packet size"), QString::number(dev->maxPacketSize)}});
+    const auto configsItem=new QTreeWidgetItem{QStringList{tr("Configurations")}};
+    addTopLevelItem(configsItem);
+    for(const auto& config : dev->configs)
+    {
+        const auto configItem=new QTreeWidgetItem{QStringList{tr("Configuration %1").arg(config.configNum)}};
+        configsItem->addChild(configItem);
+        configItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"),
+                                                 QString("%1").arg(config.attributes, 2, 16, QLatin1Char('0'))}});
+        configItem->addChild(new QTreeWidgetItem{QStringList{tr("Max power needed"),
+                                                 QString(tr(u8"%1\u202fmA")).arg(config.maxPowerMilliAmp)}});
+        const auto ifacesItem=new QTreeWidgetItem{QStringList{tr("Interfaces")}};
+        configItem->addChild(ifacesItem);
+        for(const auto& iface : config.interfaces)
+        {
+            const auto ifaceItem=new QTreeWidgetItem{QStringList{tr("Interface %1").arg(iface.ifaceNum)}};
+            ifacesItem->addChild(ifaceItem);
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active altsetting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Altsetting number"), QString::number(iface.altSettingNum)}});
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Class"), QString("%1 (%2)")
+                                        .arg(iface.ifaceClass, 2, 16, QLatin1Char('0')).arg(iface.ifaceClassStr)}});
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Subclass"),
+                                                    QString("%1").arg(iface.ifaceSubClass, 2, 16, QLatin1Char('0'))}});
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Protocol"),
+                                                    QString("%1").arg(iface.protocol, 2, 16, QLatin1Char('0'))}});
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Driver"),
+                                                    QString("%1").arg(iface.driver)}});
+            const auto endpointsItem=new QTreeWidgetItem{QStringList{tr("Endpoints (%1)").arg(iface.numEPs)}};
+            ifaceItem->addChild(endpointsItem);
+            for(const auto& ep : iface.endpoints)
+            {
+                const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint")}};
+                endpointsItem->addChild(epItem);
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Address"), QString("%1").arg(ep.address, 2, 16, QLatin1Char('0'))}});
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"), ep.isOut ? tr("out") : tr("in")}});
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"), QString("%1").arg(ep.attributes, 2, 16, QLatin1Char('0'))}});
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Type"), ep.type}});
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Max packet size"), QString::number(ep.maxPacketSize)}});
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Interval between transfers"),
+                                        QString(u8"%1\u202f%2").arg(ep.intervalBetweenTransfers).arg(ep.intervalUnit)}});
+            }
+        }
+    }
+
+    expandAll();
+    resizeColumnToContents(0);
 }
