@@ -21,13 +21,6 @@ Device* getDevice(QTreeWidgetItem const*const item)
     return reinterpret_cast<Device*>(data);
 }
 
-QString formatName(Device const& dev)
-{
-    return QString("%1:%2 %3").arg(dev.vendorId, 4, 16, QLatin1Char('0'))
-                              .arg(dev.productId, 4, 16, QLatin1Char('0'))
-                              .arg(dev.name);
-}
-
 }
 
 DeviceTreeWidget::DeviceTreeWidget(QWidget* parent)
@@ -35,6 +28,16 @@ DeviceTreeWidget::DeviceTreeWidget(QWidget* parent)
 {
     setHeaderLabel("USB devices");
     connect(this, &QTreeWidget::itemSelectionChanged, this, &DeviceTreeWidget::onSelectionChanged);
+}
+
+QString DeviceTreeWidget::formatName(Device const& dev) const
+{
+    if(wantVenProdIdsShown_)
+        return QString("%1:%2 %3").arg(dev.vendorId, 4, 16, QLatin1Char('0'))
+                                  .arg(dev.productId, 4, 16, QLatin1Char('0'))
+                                  .arg(dev.name);
+    else
+        return dev.name;
 }
 
 void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
@@ -87,6 +90,11 @@ void DeviceTreeWidget::setTree(std::vector<Device*> const& tree)
 void DeviceTreeWidget::setShowPorts(const bool enable)
 {
     wantPortsShown_=enable;
+    setTree(deviceTree_);
+}
+void DeviceTreeWidget::setShowVendorProductIds(const bool enable)
+{
+    wantVenProdIdsShown_=enable;
     setTree(deviceTree_);
 }
 
