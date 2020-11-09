@@ -39,17 +39,17 @@ void createMenuBar(QMainWindow& mainWindow, DeviceTreeWidget*const treeWidget)
     const auto view = menuBar->addMenu(QObject::tr("&View"));
 
     {
-        const auto showPortsAction = view->addAction(QObject::tr("Show &ports in hubs"));
-        QObject::connect(showPortsAction, &QAction::toggled, treeWidget, &DeviceTreeWidget::setShowPorts);
-        showPortsAction->setCheckable(true);
-        showPortsAction->setChecked(true);
+        const auto action = view->addAction(QObject::tr("Show &ports in hubs"));
+        QObject::connect(action, &QAction::toggled, treeWidget, &DeviceTreeWidget::setShowPorts);
+        action->setCheckable(true);
+        action->setChecked(true);
     }
 
     {
-        const auto showVenProdIdsAction = view->addAction(QObject::tr("Show &VendorId:ProductId in device tree"));
-        QObject::connect(showVenProdIdsAction, &QAction::toggled, treeWidget, &DeviceTreeWidget::setShowVendorProductIds);
-        showVenProdIdsAction->setCheckable(true);
-        showVenProdIdsAction->setChecked(false);
+        const auto action = view->addAction(QObject::tr("Show &VendorId:ProductId in device tree"));
+        QObject::connect(action, &QAction::toggled, treeWidget, &DeviceTreeWidget::setShowVendorProductIds);
+        action->setCheckable(true);
+        action->setChecked(false);
     }
 
     menuBar->show();
