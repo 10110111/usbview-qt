@@ -7,7 +7,7 @@ class DeviceTreeWidget : public QTreeWidget
 {
     Q_OBJECT
 
-    bool wantPortsShown_=true;
+    bool wantPortsShown_=false;
     bool wantVenProdIdsShown_=false;
     std::vector<Device*> deviceTree_;
 
