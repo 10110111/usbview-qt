@@ -54,37 +54,42 @@ void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
             if(child==dev->children.end())
                 continue;
             const auto childItem=new QTreeWidgetItem{QStringList{formatName(**child)}};
-            setDevice(childItem, *child);
+            setDevice(childItem, child->get());
             portItem->addChild(childItem);
-            insertChildren(childItem, *child);
+            insertChildren(childItem, child->get());
         }
     }
     else
     {
-        for(const auto childDev : dev->children)
+        for(const auto& childDev : dev->children)
         {
             const auto childItem=new QTreeWidgetItem{QStringList{formatName(*childDev)}};
-            setDevice(childItem, childDev);
+            setDevice(childItem, childDev.get());
             item->addChild(childItem);
-            insertChildren(childItem, childDev);
+            insertChildren(childItem, childDev.get());
         }
     }
 }
 
-void DeviceTreeWidget::setTree(std::vector<Device*> const& tree)
+void DeviceTreeWidget::updateDeviceTree()
 {
-    deviceTree_=tree;
     clear();
     const auto rootItem=new QTreeWidgetItem{QStringList{"Computer"}};
     addTopLevelItem(rootItem);
-    for(const auto dev : tree)
+    for(const auto& dev : deviceTree_)
     {
         const auto topLevelItem=new QTreeWidgetItem{QStringList{formatName(*dev)}};
-        setDevice(topLevelItem, dev);
+        setDevice(topLevelItem, dev.get());
         rootItem->addChild(topLevelItem);
-        insertChildren(topLevelItem, dev);
+        insertChildren(topLevelItem, dev.get());
     }
     expandItem(rootItem);
+}
+
+void DeviceTreeWidget::setTree(std::vector<std::unique_ptr<Device>>&& tree)
+{
+    deviceTree_=std::move(tree);
+    updateDeviceTree();
 }
 
 void DeviceTreeWidget::setShowPorts(const bool enable)
@@ -96,12 +101,6 @@ void DeviceTreeWidget::setShowVendorProductIds(const bool enable)
 {
     wantVenProdIdsShown_=enable;
     updateDeviceTree();
-}
-
-void DeviceTreeWidget::updateDeviceTree()
-{
-    if(!deviceTree_.empty())
-        setTree(deviceTree_);
 }
 
 void DeviceTreeWidget::onSelectionChanged()

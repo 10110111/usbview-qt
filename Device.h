@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 #include <string>
 #include <QString>
@@ -68,7 +69,7 @@ struct Device
 
     QString name;
     Device* parent=nullptr;
-    std::vector<Device*> children;
+    std::vector<std::unique_ptr<Device>> children;
 
     explicit Device(std::vector<std::string> const& descriptionLines);
     bool valid();

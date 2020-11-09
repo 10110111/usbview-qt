@@ -1,5 +1,6 @@
 #include "Device.h"
 #include <stdio.h>
+#include <memory>
 #include <iomanip>
 #include <iostream>
 #include <QScreen>
@@ -11,23 +12,71 @@
 #include "DeviceTreeWidget.h"
 #include "PropertiesWidget.h"
 
-std::vector<Device*> buildTree(std::vector<Device>& devices)
+std::vector<std::unique_ptr<Device>> buildTree(std::vector<std::unique_ptr<Device>>&& devices)
 {
-    for(auto& dev : devices)
+    std::vector<Device*> unmovableDeviceList;
+    for(const auto& dev : devices)
+        unmovableDeviceList.emplace_back(dev.get());
+    for(auto&& dev : devices)
     {
-        for(auto& potentialParent : devices)
+        for(auto& potentialParent : unmovableDeviceList)
         {
-            if(potentialParent.devNum != dev.parentDevNum || potentialParent.busNum != dev.busNum)
-                continue;
-            dev.parent=&potentialParent;
-            potentialParent.children.emplace_back(&dev);
+            if(potentialParent->devNum == dev->parentDevNum && potentialParent->busNum == dev->busNum)
+            {
+                dev->parent=potentialParent;
+                potentialParent->children.emplace_back(std::move(dev));
+                break;
+            }
         }
     }
-    std::vector<Device*> rootChildren;
-    for(auto& dev : devices)
-        if(!dev.parent)
-            rootChildren.emplace_back(&dev);
+    std::vector<std::unique_ptr<Device>> rootChildren;
+    for(auto&& dev : devices)
+    {
+        if(!dev) continue;
+        assert(!dev->parent);
+        rootChildren.emplace_back(std::move(dev));
+    }
     return rootChildren;
+}
+
+std::vector<std::unique_ptr<Device>> readDeviceTree()
+{
+    const auto stream=popen("usb-devices", "r");
+    if(!stream)
+    {
+        std::cerr << "Failed to run usb-devices\n";
+        return {};
+    }
+    std::vector<std::unique_ptr<Device>> devices;
+    std::vector<std::string> description;
+    char buf[4096];
+    while(true)
+    {
+        const bool needToStop = !fgets(buf, sizeof buf - 1, stream);
+        if(buf[0]=='\n' || needToStop)
+        {
+            if(!description.empty())
+                devices.emplace_back(std::make_unique<Device>(description));
+            description.clear();
+            if(needToStop) break;
+            continue;
+        }
+        description.emplace_back(buf);
+        if(needToStop) break;
+    }
+    pclose(stream);
+
+    for(auto&& device : devices)
+    {
+        if(!device->valid())
+        {
+            std::cerr << "Device " << std::hex << device->vendorId << ":" << device->productId << std::dec
+                      << " has invalid/incomplete description: " << device->reasonIfInvalid.toStdString() << "\n";
+            return {};
+        }
+    }
+
+    return buildTree(std::move(devices));
 }
 
 void createMenuBar(QMainWindow& mainWindow, DeviceTreeWidget*const treeWidget)
@@ -39,12 +88,18 @@ void createMenuBar(QMainWindow& mainWindow, DeviceTreeWidget*const treeWidget)
     const auto view = menuBar->addMenu(QObject::tr("&View"));
 
     {
+        const auto action = view->addAction(QObject::tr("&Refresh"));
+        action->setShortcut(QKeySequence::Refresh);
+        QObject::connect(action, &QAction::triggered, [treeWidget]{
+                         treeWidget->setTree(readDeviceTree()); });
+        action->trigger();
+    }
+    {
         const auto action = view->addAction(QObject::tr("Show &ports in hubs"));
         QObject::connect(action, &QAction::toggled, treeWidget, &DeviceTreeWidget::setShowPorts);
         action->setCheckable(true);
         action->setChecked(true);
     }
-
     {
         const auto action = view->addAction(QObject::tr("Show &VendorId:ProductId in device tree"));
         QObject::connect(action, &QAction::toggled, treeWidget, &DeviceTreeWidget::setShowVendorProductIds);
@@ -58,46 +113,9 @@ void createMenuBar(QMainWindow& mainWindow, DeviceTreeWidget*const treeWidget)
 int main(int argc, char** argv)
 try
 {
-    const auto stream=popen("usb-devices", "r");
-    if(!stream)
-    {
-        std::cerr << "Failed to run usb-devices\n";
-        return 1;
-    }
-    std::vector<Device> devices;
-    std::vector<std::string> description;
-    char buf[4096];
-    while(true)
-    {
-        const bool needToStop = !fgets(buf, sizeof buf - 1, stream);
-        if(buf[0]=='\n' || needToStop)
-        {
-            if(!description.empty())
-                devices.emplace_back(Device(description));
-            description.clear();
-            if(needToStop) break;
-            continue;
-        }
-        description.emplace_back(buf);
-        if(needToStop) break;
-    }
-    pclose(stream);
-
-    for(auto& device : devices)
-    {
-        if(!device.valid())
-        {
-            std::cerr << "Device " << std::hex << device.vendorId << ":" << device.productId << std::dec
-                      << " has invalid/incomplete description: " << device.reasonIfInvalid.toStdString() << "\n";
-            return 1;
-        }
-    }
-
     QApplication app(argc, argv);
 
-    const auto topLevel=buildTree(devices);
     const auto treeWidget=new DeviceTreeWidget;
-    treeWidget->setTree(topLevel);
     const auto propsWidget=new PropertiesWidget;
     const auto centralWidget=new QSplitter;
     centralWidget->addWidget(treeWidget);
