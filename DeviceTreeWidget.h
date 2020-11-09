@@ -14,6 +14,7 @@ class DeviceTreeWidget : public QTreeWidget
     void insertChildren(QTreeWidgetItem* item, Device const* dev);
     QString formatName(Device const& dev) const;
     void onSelectionChanged();
+    void updateDeviceTree();
 
 public:
     DeviceTreeWidget(QWidget* parent=nullptr);

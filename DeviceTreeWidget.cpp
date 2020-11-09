@@ -90,12 +90,18 @@ void DeviceTreeWidget::setTree(std::vector<Device*> const& tree)
 void DeviceTreeWidget::setShowPorts(const bool enable)
 {
     wantPortsShown_=enable;
-    setTree(deviceTree_);
+    updateDeviceTree();
 }
 void DeviceTreeWidget::setShowVendorProductIds(const bool enable)
 {
     wantVenProdIdsShown_=enable;
-    setTree(deviceTree_);
+    updateDeviceTree();
+}
+
+void DeviceTreeWidget::updateDeviceTree()
+{
+    if(!deviceTree_.empty())
+        setTree(deviceTree_);
 }
 
 void DeviceTreeWidget::onSelectionChanged()
