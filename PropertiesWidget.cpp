@@ -10,8 +10,8 @@ PropertiesWidget::PropertiesWidget(QWidget* parent)
 void PropertiesWidget::showDevice(Device const* dev)
 {
     clear();
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor Id", QString("%1").arg(dev->vendorId, 4, 16, QLatin1Char('0'))}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Product Id", QString("%1").arg(dev->productId, 4, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor Id", QString("0x%1").arg(dev->vendorId, 4, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Product Id", QString("0x%1").arg(dev->productId, 4, 16, QLatin1Char('0'))}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Revision", dev->revision}});
     if(!dev->manufacturer.isNull())
         addTopLevelItem(new QTreeWidgetItem{QStringList{"Manufacturer", dev->manufacturer}});
@@ -43,10 +43,10 @@ void PropertiesWidget::showDevice(Device const* dev)
         }
         addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Speed"), speed}});
     }
-    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device class"), QString("%1 (%2)").arg(dev->devClass, 2, 16, QLatin1Char('0'))
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device class"), QString("0x%1 (%2)").arg(dev->devClass, 2, 16, QLatin1Char('0'))
                                                                                       .arg(dev->devClassStr)}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device subclass"), QString("%1").arg(dev->devSubClass, 2, 16, QLatin1Char('0'))}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device protocol"), QString("%1").arg(dev->devProtocol, 2, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device subclass"), QString("0x%1").arg(dev->devSubClass, 2, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device protocol"), QString("0x%1").arg(dev->devProtocol, 2, 16, QLatin1Char('0'))}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Max default endpoint packet size"), QString::number(dev->maxPacketSize)}});
     const auto configsItem=new QTreeWidgetItem{QStringList{tr("Configurations")}};
     addTopLevelItem(configsItem);
@@ -55,7 +55,7 @@ void PropertiesWidget::showDevice(Device const* dev)
         const auto configItem=new QTreeWidgetItem{QStringList{tr("Configuration %1").arg(config.configNum)}};
         configsItem->addChild(configItem);
         configItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"),
-                                                 QString("%1").arg(config.attributes, 2, 16, QLatin1Char('0'))}});
+                                                 QString("0x%1").arg(config.attributes, 2, 16, QLatin1Char('0'))}});
         configItem->addChild(new QTreeWidgetItem{QStringList{tr("Max power needed"),
                                                  QString(tr(u8"%1\u202fmA")).arg(config.maxPowerMilliAmp)}});
         const auto ifacesItem=new QTreeWidgetItem{QStringList{tr("Interfaces")}};
@@ -66,23 +66,23 @@ void PropertiesWidget::showDevice(Device const* dev)
             ifacesItem->addChild(ifaceItem);
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active altsetting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Altsetting number"), QString::number(iface.altSettingNum)}});
-            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Class"), QString("%1 (%2)")
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Class"), QString("0x%1 (%2)")
                                         .arg(iface.ifaceClass, 2, 16, QLatin1Char('0')).arg(iface.ifaceClassStr)}});
             QString subclassStr, protocolStr;
             constexpr unsigned classHID=0x03;
             if(iface.ifaceClass==classHID)
             {
                 if(iface.ifaceSubClass==1)
-                    subclassStr=tr("%1 (boot interface)").arg(iface.ifaceSubClass, 2, 16, QLatin1Char('0'));
+                    subclassStr=tr("0x%1 (boot interface)").arg(iface.ifaceSubClass, 2, 16, QLatin1Char('0'));
                 if(iface.protocol==1)
-                    protocolStr=QString("%1 (keyboard)").arg(iface.protocol, 2, 16, QLatin1Char('0'));
+                    protocolStr=QString("0x%1 (keyboard)").arg(iface.protocol, 2, 16, QLatin1Char('0'));
                 else if(iface.protocol==2)
-                    protocolStr=QString("%1 (mouse)").arg(iface.protocol, 2, 16, QLatin1Char('0'));
+                    protocolStr=QString("0x%1 (mouse)").arg(iface.protocol, 2, 16, QLatin1Char('0'));
             }
             if(subclassStr.isNull())
-                subclassStr=QString("%1").arg(iface.ifaceSubClass, 2, 16, QLatin1Char('0'));
+                subclassStr=QString("0x%1").arg(iface.ifaceSubClass, 2, 16, QLatin1Char('0'));
             if(protocolStr.isNull())
-                protocolStr=QString("%1").arg(iface.protocol, 2, 16, QLatin1Char('0'));
+                protocolStr=QString("0x%1").arg(iface.protocol, 2, 16, QLatin1Char('0'));
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Subclass"), subclassStr}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Protocol"), protocolStr}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Driver"),
@@ -92,10 +92,10 @@ void PropertiesWidget::showDevice(Device const* dev)
             ifaceItem->addChild(endpointsItem);
             for(const auto& ep : iface.endpoints)
             {
-                const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint %1").arg(ep.address, 2, 16, QLatin1Char('0'))}};
+                const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint 0x%1").arg(ep.address, 2, 16, QLatin1Char('0'))}};
                 endpointsItem->addChild(epItem);
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"), ep.isOut ? tr("out") : tr("in")}});
-                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"), QString("%1").arg(ep.attributes, 2, 16, QLatin1Char('0'))}});
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"), QString("0x%1").arg(ep.attributes, 2, 16, QLatin1Char('0'))}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Type"),
                                                                  ep.type=="Ctrl" ? tr("Control") :
                                                                  ep.type=="Isoc" ? tr("Isochronous") :
