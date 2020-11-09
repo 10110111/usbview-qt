@@ -87,13 +87,13 @@ void PropertiesWidget::showDevice(Device const* dev)
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Protocol"), protocolStr}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Driver"),
                                                     QString("%1").arg(iface.driver)}});
-            const auto endpointsItem=new QTreeWidgetItem{QStringList{tr("Endpoints (%1)").arg(iface.numEPs)}};
+            const auto endpointsItem=new QTreeWidgetItem{QStringList{
+                                        iface.endpoints.empty() ? tr("Endpoints (%1)").arg(iface.numEPs) : tr("Endpoints")}};
             ifaceItem->addChild(endpointsItem);
             for(const auto& ep : iface.endpoints)
             {
-                const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint")}};
+                const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint %1").arg(ep.address, 2, 16, QLatin1Char('0'))}};
                 endpointsItem->addChild(epItem);
-                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Address"), QString("%1").arg(ep.address, 2, 16, QLatin1Char('0'))}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"), ep.isOut ? tr("out") : tr("in")}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"), QString("%1").arg(ep.attributes, 2, 16, QLatin1Char('0'))}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Type"), ep.type}});
