@@ -96,7 +96,12 @@ void PropertiesWidget::showDevice(Device const* dev)
                 endpointsItem->addChild(epItem);
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"), ep.isOut ? tr("out") : tr("in")}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"), QString("%1").arg(ep.attributes, 2, 16, QLatin1Char('0'))}});
-                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Type"), ep.type}});
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Type"),
+                                                                 ep.type=="Ctrl" ? tr("Control") :
+                                                                 ep.type=="Isoc" ? tr("Isochronous") :
+                                                                 ep.type=="Bulk" ? tr("Bulk") :
+                                                                 ep.type=="Int." ? tr("Interrupt") :
+                                                                 ep.type}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Max packet size"), QString::number(ep.maxPacketSize)}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Interval between transfers"),
                                         QString(u8"%1\u202f%2").arg(ep.intervalBetweenTransfers).arg(ep.intervalUnit)}});
