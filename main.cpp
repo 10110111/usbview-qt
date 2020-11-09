@@ -1,0 +1,96 @@
+#include "Device.h"
+#include <stdio.h>
+#include <iomanip>
+#include <iostream>
+#include <QMenuBar>
+#include <QSplitter>
+#include <QMainWindow>
+#include <QApplication>
+#include "DeviceTreeWidget.h"
+#include "PropertiesWidget.h"
+
+std::vector<Device*> buildTree(std::vector<Device>& devices)
+{
+    for(auto& dev : devices)
+    {
+        for(auto& potentialParent : devices)
+        {
+            if(potentialParent.devNum != dev.parentDevNum || potentialParent.busNum != dev.busNum)
+                continue;
+            dev.parent=&potentialParent;
+            potentialParent.children.emplace_back(&dev);
+        }
+    }
+    std::vector<Device*> rootChildren;
+    for(auto& dev : devices)
+        if(!dev.parent)
+            rootChildren.emplace_back(&dev);
+    return rootChildren;
+}
+
+void createMenuBar(QMainWindow& mainWindow, DeviceTreeWidget*const treeWidget)
+{
+    const auto menuBar = mainWindow.menuBar();
+    const auto fileMenu = menuBar->addMenu(QObject::tr("&File"));
+    const auto exitAction = fileMenu->addAction(QObject::tr("E&xit"));
+    QObject::connect(exitAction, &QAction::triggered, qApp, &QApplication::quit);
+    const auto view = menuBar->addMenu(QObject::tr("&View"));
+    const auto showPortsAction = view->addAction(QObject::tr("Show &ports in hubs"));
+    showPortsAction->setCheckable(true);
+    showPortsAction->setChecked(true);
+    QObject::connect(showPortsAction, &QAction::toggled, treeWidget, &DeviceTreeWidget::setShowPorts);
+    menuBar->show();
+}
+
+int main(int argc, char** argv)
+try
+{
+    const auto stream=popen("usb-devices", "r");
+    if(!stream)
+    {
+        std::cerr << "Failed to run usb-devices\n";
+        return 1;
+    }
+    std::vector<Device> devices;
+    std::vector<std::string> description;
+    char buf[4096];
+    while(true)
+    {
+        const bool needToStop = !fgets(buf, sizeof buf - 1, stream);
+        if(buf[0]=='\n' || needToStop)
+        {
+            if(!description.empty())
+                devices.emplace_back(Device(description));
+            description.clear();
+            if(needToStop) break;
+            continue;
+        }
+        description.emplace_back(buf);
+        if(needToStop) break;
+    }
+    pclose(stream);
+
+    QApplication app(argc, argv);
+
+    const auto topLevel=buildTree(devices);
+    const auto treeWidget=new DeviceTreeWidget;
+    treeWidget->setTree(topLevel);
+    const auto propsWidget=new PropertiesWidget;
+    const auto centralWidget=new QSplitter;
+    centralWidget->addWidget(treeWidget);
+    centralWidget->addWidget(propsWidget);
+    QMainWindow mainWindow;
+    mainWindow.setCentralWidget(centralWidget);
+    mainWindow.show();
+    createMenuBar(mainWindow, treeWidget);
+
+    QObject::connect(treeWidget, &DeviceTreeWidget::deviceSelected, propsWidget, &PropertiesWidget::showDevice);
+    QObject::connect(treeWidget, &DeviceTreeWidget::devicesUnselected, propsWidget, &PropertiesWidget::clear);
+
+    return app.exec();
+}
+catch(std::exception const& ex)
+{
+    std::cerr << "Error: " << ex.what() << "\n";
+    return 1;
+}
