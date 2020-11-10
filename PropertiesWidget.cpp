@@ -10,6 +10,7 @@ PropertiesWidget::PropertiesWidget(QWidget* parent)
 void PropertiesWidget::showDevice(Device const* dev)
 {
     clear();
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Device path", dev->devicePath}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor Id", QString("0x%1").arg(dev->vendorId, 4, 16, QLatin1Char('0'))}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Product Id", QString("0x%1").arg(dev->productId, 4, 16, QLatin1Char('0'))}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Revision", dev->revision}});

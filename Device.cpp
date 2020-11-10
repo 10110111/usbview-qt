@@ -204,6 +204,8 @@ Device::Device(fs::path const& devpath)
 
     const auto& path=devpath.string();
 
+    devicePath=QString::fromStdString(path);
+
     busNum=getUInt(devpath/"busnum", 10);
     devNum=getUInt(devpath/"devnum", 10);
 

@@ -8,6 +8,8 @@
 
 struct Device
 {
+    QString devicePath;
+
 	unsigned vendorId;
 	unsigned productId;
     QString revision;
