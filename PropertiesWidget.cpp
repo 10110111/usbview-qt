@@ -68,7 +68,7 @@ void PropertiesWidget::showDevice(Device const* dev)
             const auto ifaceItem=new QTreeWidgetItem{QStringList{tr("Interface %1").arg(iface.ifaceNum)}};
             ifacesItem->addChild(ifaceItem);
 			ifaceItem->setFirstColumnSpanned(true);
-            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active altsetting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
+//            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active altsetting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Altsetting number"), QString::number(iface.altSettingNum)}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Class"), QString("0x%1 (%2)")
                                         .arg(iface.ifaceClass, 2, 16, QLatin1Char('0')).arg(iface.ifaceClassStr)}});
@@ -100,13 +100,17 @@ void PropertiesWidget::showDevice(Device const* dev)
                 const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint 0x%1").arg(ep.address, 2, 16, QLatin1Char('0'))}};
                 endpointsItem->addChild(epItem);
 				epItem->setFirstColumnSpanned(true);
-                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"), ep.isOut ? tr("out") : tr("in")}});
+                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"),
+                                                                 ep.direction=="in"  ? tr("In")   :
+                                                                 ep.direction=="out" ? tr("Out")  :
+                                                                 ep.direction=="both"? tr("Both") :
+                                                                 ep.direction}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"), QString("0x%1").arg(ep.attributes, 2, 16, QLatin1Char('0'))}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Type"),
-                                                                 ep.type=="Ctrl" ? tr("Control") :
-                                                                 ep.type=="Isoc" ? tr("Isochronous") :
-                                                                 ep.type=="Bulk" ? tr("Bulk") :
-                                                                 ep.type=="Int." ? tr("Interrupt") :
+                                                                 ep.type=="Control"   ? tr("Control")     :
+                                                                 ep.type=="Isoc"      ? tr("Isochronous") :
+                                                                 ep.type=="Bulk"      ? tr("Bulk")        :
+                                                                 ep.type=="Interrupt" ? tr("Interrupt")   :
                                                                  ep.type}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Max packet size"), QString::number(ep.maxPacketSize)}});
                 epItem->addChild(new QTreeWidgetItem{QStringList{tr("Interval between transfers"),

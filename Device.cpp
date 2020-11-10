@@ -1,169 +1,260 @@
 #include "Device.h"
+#include <regex>
+#include <string>
+#include <cassert>
 #include <clocale>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
 #include <QObject>
+#include "util.hpp"
 
-bool startsWith(std::string_view line, std::string_view beginning)
+namespace fs=std::filesystem;
+
+namespace
 {
-    if(line.size() < beginning.size()) return false;
-    return std::string_view(line.data(), beginning.size()) == beginning;
+
+QString devClassName(const uint8_t classId)
+{
+    switch(classId)
+    {
+    case 0x00: return QObject::tr("defined by interface descriptor");
+    case 0x01: return QObject::tr("audio");
+	case 0x02: return QObject::tr("communications and CDC control");
+	case 0x03: return QObject::tr("HID");
+	case 0x05: return QObject::tr("physical");
+	case 0x06: return QObject::tr("image");
+	case 0x07: return QObject::tr("printer");
+	case 0x08: return QObject::tr("mass storage");
+	case 0x09: return QObject::tr("hub");
+	case 0x0a: return QObject::tr("CDC data");
+	case 0x0b: return QObject::tr("smart card");
+	case 0x0d: return QObject::tr("content security");
+	case 0x0e: return QObject::tr("video");
+	case 0x0f: return QObject::tr("personal healthcare");
+	case 0x10: return QObject::tr("audio/video");
+	case 0x11: return QObject::tr("billboard");
+	case 0x12: return QObject::tr("USB Type-C bridge");
+	case 0xdc: return QObject::tr("diagnostic");
+	case 0xe0: return QObject::tr("wireless controller");
+	case 0xef: return QObject::tr("misc.");
+	case 0xfe: return QObject::tr("app-specific");
+	case 0xff: return QObject::tr("vendor-specific");
+    default  : return QObject::tr("unknown");
+    }
 }
 
-Device::Device(std::vector<std::string> const& descriptionLines)
+unsigned getUInt(fs::path const& filePath, const int base)
+{
+    std::ifstream file(filePath);
+    switch(base)
+    {
+    case 16: file >> std::hex; break;
+    case 10: file >> std::dec; break;
+    case 8:  file >> std::oct; break;
+    default: assert(!"Invalid base");
+    }
+    unsigned value;
+    file >> value;
+    if(!file)
+        throw std::invalid_argument("Failed to parse integer from file \""+filePath.string()+"\"");
+    if(file.get()!='\n')
+        throw std::invalid_argument("Trailing characters after integer in file \""+filePath.string()+"\"");
+    return value;
+}
+
+unsigned getUInt(std::string const& str, const int base)
+{
+    assert(base==8 || base==10 || base==16);
+    std::size_t pos=0;
+    const auto value=std::stoul(str, &pos, base);
+    if(pos!=str.size())
+        throw std::invalid_argument("Trailing characters after integer \""+str+"\"");
+    return value;
+}
+
+double getDouble(fs::path const& filePath)
+{
+    std::ifstream file(filePath);
+    double value;
+    file >> value;
+    if(!file)
+        throw std::invalid_argument("Failed to parse floating-point number from file \""+filePath.string()+"\"");
+    if(file.get()!='\n')
+        throw std::invalid_argument("Trailing characters after floating-point number in file \""+filePath.string()+"\"");
+    return value;
+}
+
+double getDouble(std::string const& str)
+{
+    std::size_t pos=0;
+    const auto value=std::stod(str, &pos);
+    if(pos!=str.size())
+        throw std::invalid_argument("Trailing characters after floating-point number \""+str+"\"");
+    return value;
+}
+
+QString getString(fs::path const& filePath)
+{
+    char data[4097];
+    std::ifstream file(filePath);
+    file.read(data, sizeof data);
+    if(!file.gcount())
+        throw std::invalid_argument("Failed to read file \""+filePath.string()+"\"");
+    auto str=QLatin1String(data, file.gcount());
+    if(str.size() && str.back()=='\n')
+        str.chop(1);
+    return str;
+}
+
+QString getDevString(fs::path const& filePath)
+{
+    // This one may not exist
+    if(!fs::exists(filePath))
+        return QString();
+    return getString(filePath);
+}
+
+bool matches(std::string const& str, std::string const& pattern)
+{
+    return std::regex_match(str, std::regex(pattern));
+}
+
+}
+
+void Device::parseEndpoint(fs::path const& epPath, Endpoint& ep)
+{
+    // Radices are defined in linux-4.14.157/core/endpoint.c
+    ep.address=getUInt(epPath/"bEndpointAddress", 16);
+    ep.attributes=getUInt(epPath/"bmAttributes", 16);
+    ep.direction=getString(epPath/"direction");
+    ep.type=getString(epPath/"type");
+    ep.maxPacketSize=getUInt(epPath/"wMaxPacketSize", 16);
+
+    {
+        const auto intervalStr=getString(epPath/"interval").toStdString();
+        std::size_t pos;
+        ep.intervalBetweenTransfers=std::stoul(intervalStr, &pos);
+        ep.intervalUnit=QString::fromStdString(intervalStr.substr(pos));
+    }
+}
+
+void Device::parseInterface(std::filesystem::path const& intPath, Interface& iface)
+{
+    iface.activeAltSetting=false; //FIXME: where is this info located in /sys/bus/usb/devices?
+
+    // Radices are defined in linux-4.14.157/core/sysfs.c
+    iface.ifaceNum=getUInt(intPath/"bInterfaceNumber", 16);
+    iface.altSettingNum=getUInt(intPath/"bAlternateSetting", 10);
+    iface.numEPs=getUInt(intPath/"bNumEndpoints", 16);
+    iface.ifaceClass=getUInt(intPath/"bInterfaceClass", 16);
+    iface.ifaceClassStr=devClassName(iface.ifaceClass);
+    iface.ifaceSubClass=getUInt(intPath/"bInterfaceSubClass", 16);
+    iface.protocol=getUInt(intPath/"bInterfaceProtocol", 16);
+
+    // If no such link, then there's no associated driver
+    const auto driverLink=intPath/"driver";
+    if(fs::exists(driverLink) && fs::is_symlink(driverLink))
+        iface.driver=QString::fromStdString(fs::read_symlink(driverLink).filename().string());
+
+    for(const auto& entry : fs::directory_iterator(intPath))
+    {
+        const auto epPath=entry.path();
+        const auto filename=epPath.filename().string();
+        if(!startsWith(filename, "ep_") || !matches(filename, "ep_..$"))
+            continue;
+        auto& ep=iface.endpoints.emplace_back();
+        parseEndpoint(epPath, ep);
+    }
+}
+
+void Device::parseConfigs(fs::path const& devpath)
+{
+    auto& config=configs.emplace_back();
+    config.active=true; // FIXME: where can inactive configs be found?
+    config.numInterfaces=getUInt(devpath/"bNumInterfaces", 10);
+    config.configNum=getUInt(devpath/"bConfigurationValue", 10);
+    config.attributes=getUInt(devpath/"bmAttributes", 16);
+
+    const auto maxPower=getString(devpath/"bMaxPower");
+    if(!maxPower.endsWith("mA"))
+        throw std::invalid_argument("bMaxPower doesn't end in mA in file \""+devpath.string()+"\"");
+    config.maxPowerMilliAmp=getDouble(maxPower.chopped(2).toStdString());
+
+    parseEndpoint(devpath/"ep_00", endpoint00);
+
+    const auto busNumStr=std::to_string(busNum);
+    for(const auto& entry : fs::directory_iterator(devpath))
+    {
+        const auto intPath=entry.path();
+        const auto filename=intPath.filename().string();
+        if(!startsWith(filename, busNumStr) || !matches(filename, busNumStr+"-.*:.\\..*"))
+            continue;
+        auto& iface=config.interfaces.emplace_back();
+        parseInterface(intPath, iface);
+    }
+}
+
+Device::Device(fs::path const& devpath)
 {
 	// Force '.' as the radix point, which is used by sysfs. We don't care to restore it
 	// after parsing, since we never display any numbers that should be localized.
 	std::setlocale(LC_NUMERIC,"C");
 
-    for(const auto& line : descriptionLines)
+    const auto& path=devpath.string();
+
+    busNum=getUInt(devpath/"busnum", 10);
+    devNum=getUInt(devpath/"devnum", 10);
+
     {
-        if(line.size() < 2)
-            throw std::invalid_argument("Too short device description line: \""+line+"\"");
-        if(line[1] != ':')
-            throw std::invalid_argument("Missing colon in device description line: \""+line+"\"");
-        switch(line[0])
-        {
-        case 'P':
-        {
-            char rev[11];
-            if(sscanf(line.c_str(), "P:  Vendor=%x ProdID=%x Rev=%10s\n", &vendorId, &productId, rev)!=3)
-                throw std::invalid_argument("Failed to parse line \""+line+"\"");
-            revision=rev;
-            break;
-        }
-        case 'S':
-            if(startsWith(line, "S:  Manufacturer="))
-            {
-                manufacturer=line.data()+sizeof("S:  Manufacturer=")-1;
-                manufacturer.chop(1); // '\n'
-            }
-            else if(startsWith(line, "S:  Product="))
-            {
-                product=line.data()+sizeof("S:  Product=")-1;
-                product.chop(1); // '\n'
-            }
-            else if(startsWith(line, "S:  SerialNumber="))
-            {
-                serialNum=line.data()+sizeof("S:  SerialNumber=")-1;
-                serialNum.chop(1); // '\n'
-            }
-            break;
-        case 'T':
-            if(sscanf(line.c_str(), "T:  Bus=%u Lev=%u Prnt=%u Port=%u Cnt=%u Dev#=%u Spd=%lf MxCh=%u\n",
-                      &busNum, &level, &parentDevNum, &port, &numDevsAtThisLevel, &devNum, &speed, &maxChildren) != 8)
-                throw std::invalid_argument("Failed to parse line \""+line+"\"");
-            break;
-        case 'D':
-            char ver[11];
-            char cls[31];
-            if(const auto ndone=sscanf(line.c_str(), "D:  Ver=%10s Cls=%x(%30[^)]) Sub=%x Prot=%x MxPS=%u #Cfgs=%u\n",
-                      ver, &devClass, cls, &devSubClass, &devProtocol, &maxPacketSize, &numConfigs); ndone != 7)
-                throw std::invalid_argument("Failed to parse line \""+line+"\": "+std::to_string(ndone));
-            usbVersion=ver;
-            devClassStr=QString(cls).trimmed();
-            break;
-        case 'C':
-        {
-            Config conf;
-            char activeConfChar;
-            if(sscanf(line.c_str(), "C:%c #Ifs=%u Cfg#=%u Atr=%x MxPwr=%dmA",
-                      &activeConfChar, &conf.numInterfaces, &conf.configNum, &conf.attributes, &conf.maxPowerMilliAmp) != 5)
-                throw std::invalid_argument("Failed to parse line \""+line+"\"");
+        const auto sep=path.find_last_of(".-");
+        if(sep==path.npos)
+            port=0;
+        else
+            port=getUInt(path.substr(sep+1), 10);
+    }
 
-            switch(activeConfChar)
-            {
-            case ' ': conf.active=false; break;
-            case '*': conf.active=true;  break;
-            default: throw std::invalid_argument(std::string("Bad activity indicator '")+activeConfChar+
-                                                 "' in configuration description \""+line+"\"");
-            }
-            configs.emplace_back(std::move(conf));
-            break;
-        }
-        case 'I':
-        {
-            Interface iface;
-            char activeAltSettingChar, cls[31], driver[31];
-            if(sscanf(line.c_str(), "I:%c If#=%u Alt=%u #EPs=%u Cls=%x(%30[^)]) Sub=%x Prot=%x Driver=%30[^\n]",
-                      &activeAltSettingChar, &iface.ifaceNum, &iface.altSettingNum, &iface.numEPs, &iface.ifaceClass,
-                      cls, &iface.ifaceSubClass, &iface.protocol, driver) != 9)
-                throw std::invalid_argument("Failed to parse line \""+line+"\"");
-            if(configs.empty())
-                throw std::invalid_argument("Interface description found before any config: \""+line+"\"");
+    speed=getDouble(devpath/"speed");
+    maxChildren=getUInt(devpath/"maxchild", 10);
 
-            switch(activeAltSettingChar)
-            {
-            case ' ': iface.activeAltSetting=false; break;
-            case '*': iface.activeAltSetting=true;  break;
-            default: throw std::invalid_argument(std::string("Bad activity indicator '")+activeAltSettingChar+
-                                                 "' in interface description \""+line+"\"");
-            }
+    usbVersion=getString(devpath/"version").trimmed();
+    devClass=getUInt(devpath/"bDeviceClass", 16);
+    devClassStr=devClassName(devClass);
+    devSubClass=getUInt(devpath/"bDeviceSubClass", 16);
+    devProtocol=getUInt(devpath/"bDeviceProtocol", 16);
+    maxPacketSize=getUInt(devpath/"bMaxPacketSize0", 10);
+    numConfigs=getUInt(devpath/"bNumConfigurations", 10);
 
-            iface.ifaceClassStr=QString(cls).trimmed();
-            iface.driver=QString(driver).trimmed();
+    vendorId=getUInt(devpath/"idVendor", 16);
+    productId=getUInt(devpath/"idProduct", 16);
 
-            configs.back().interfaces.emplace_back(std::move(iface));
-            break;
-        }
-        case 'E':
-        {
-            Endpoint ep;
-            char inOutTypeChar, type[31], unit[11];
-            if(sscanf(line.c_str(), "E:  Ad=%x(%c) Atr=%x(%30[^)]) MxPS=%u Ivl=%u%10s\n",
-                      &ep.address, &inOutTypeChar, &ep.attributes, type, &ep.maxPacketSize, &ep.intervalBetweenTransfers, unit) != 7)
-                throw std::invalid_argument("Failed to parse line \""+line+"\"");
+    const auto revBCD=getUInt(devpath/"bcdDevice", 16);
+    if(revBCD&0xf000)
+    {
+        revision=QString("%1%2.%3%4").arg(QChar((revBCD>>12)+'0')).arg(QChar((revBCD>>8&0xf)+'0'))
+                                     .arg(QChar((revBCD>>4&0xf)+'0')).arg(QChar((revBCD&0xf)+'0'));
+    }
+    else
+    {
+        revision=QString("%1.%2%3").arg(QChar((revBCD>>8&0xf)+'0')).arg(QChar((revBCD>>4&0xf)+'0')).arg(QChar((revBCD&0xf)+'0'));
+    }
 
-            switch(inOutTypeChar)
-            {
-            case 'I': ep.isOut=false; break;
-            case 'O': ep.isOut=true;  break;
-            default: throw std::invalid_argument(std::string("Bad In/Out indicator '")+inOutTypeChar+"' in endpoint description \""+line+"\"");
-            }
-            ep.type=QString(type).trimmed();
-            ep.intervalUnit=QString(unit).trimmed();
+    manufacturer=getDevString(devpath/"manufacturer");
+    product=getDevString(devpath/"product");
+    serialNum=getDevString(devpath/"serial");
 
-            if(configs.empty())
-                throw std::invalid_argument("Endpoint description found before any config: \""+line+"\"");
-            auto& ifaces=configs.back().interfaces;
-            if(ifaces.empty())
-                throw std::invalid_argument("Endpoint description found before any interface: \""+line+"\"");
+    parseConfigs(devpath);
 
-            ifaces.back().endpoints.emplace_back(std::move(ep));
-            break;
-        }
-        }
+    const auto busNumStr=std::to_string(busNum);
+    for(const auto& entry : fs::directory_iterator(devpath))
+    {
+        const auto subDevPath=entry.path();
+        const auto filename=subDevPath.filename().string();
+        if(!startsWith(filename, busNumStr) || !matches(filename, busNumStr+"-[0-9]+(?:\\.[0-9]+)*$"))
+            continue;
+        children.emplace_back(std::make_unique<Device>(subDevPath));
     }
 
     name = product.isEmpty() ? devClassStr : product;
-}
-
-bool Device::valid()
-{
-    if(configs.size() != numConfigs)
-    {
-        reasonIfInvalid=QObject::tr("Number of configs in the description, %1, is different from number of actual configs read, %2")
-                                    .arg(numConfigs).arg(configs.size());
-        return false;
-    }
-    for(const auto& config : configs)
-    {
-        if(config.interfaces.size() != config.numInterfaces)
-        {
-            reasonIfInvalid=QObject::tr("Number of interfaces in the description, %1, is different from number of actual interfaces read, %2")
-                                        .arg(config.numInterfaces).arg(config.interfaces.size());
-            return false;
-        }
-//        for(const auto& iface : config.interfaces)
-//        {
-//            if(iface.endpoints.size() != iface.numEPs)
-//            {
-//                reasonIfInvalid=QObject::tr("Number of endpoints in the description, %1, is different from number of actual endpoints read, %2")
-//                                            .arg(iface.numEPs).arg(iface.endpoints.size());
-//                return false;
-//            }
-//        }
-    }
-    return true;
 }

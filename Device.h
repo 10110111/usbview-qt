@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <filesystem>
 #include <QString>
 
 struct Device
@@ -16,10 +17,7 @@ struct Device
     QString serialNum;
 
 	unsigned busNum;
-	unsigned level;
-	unsigned parentDevNum;
 	unsigned port;
-	unsigned numDevsAtThisLevel;
 	unsigned devNum;
     double speed;
 	unsigned maxChildren;
@@ -34,9 +32,9 @@ struct Device
 
     struct Endpoint
     {
-        bool isOut;
         unsigned address;
         unsigned attributes;
+        QString direction;
         QString type;
         unsigned maxPacketSize;
         unsigned intervalBetweenTransfers;
@@ -65,13 +63,15 @@ struct Device
         std::vector<Interface> interfaces;
     };
 
+    Endpoint endpoint00;
     std::vector<Config> configs;
 
     QString name;
-    Device* parent=nullptr;
     std::vector<std::unique_ptr<Device>> children;
 
-    explicit Device(std::vector<std::string> const& descriptionLines);
-    bool valid();
-    QString reasonIfInvalid;
+    explicit Device(std::filesystem::path const& devpath);
+private:
+    void parseConfigs(std::filesystem::path const& devpath);
+    void parseEndpoint(std::filesystem::path const& devpath, Endpoint& ep);
+    void parseInterface(std::filesystem::path const& intPath, Interface& iface);
 };

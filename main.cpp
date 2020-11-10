@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iomanip>
 #include <iostream>
+#include <filesystem>
 #include <QScreen>
 #include <QMenuBar>
 #include <QSplitter>
@@ -12,72 +13,20 @@
 #include <QApplication>
 #include "DeviceTreeWidget.h"
 #include "PropertiesWidget.h"
-
-std::vector<std::unique_ptr<Device>> buildTree(std::vector<std::unique_ptr<Device>>&& devices)
-{
-    std::vector<Device*> unmovableDeviceList;
-    for(const auto& dev : devices)
-        unmovableDeviceList.emplace_back(dev.get());
-    for(auto&& dev : devices)
-    {
-        for(auto& potentialParent : unmovableDeviceList)
-        {
-            if(potentialParent->devNum == dev->parentDevNum && potentialParent->busNum == dev->busNum)
-            {
-                dev->parent=potentialParent;
-                potentialParent->children.emplace_back(std::move(dev));
-                break;
-            }
-        }
-    }
-    std::vector<std::unique_ptr<Device>> rootChildren;
-    for(auto&& dev : devices)
-    {
-        if(!dev) continue;
-        assert(!dev->parent);
-        rootChildren.emplace_back(std::move(dev));
-    }
-    return rootChildren;
-}
+#include "util.hpp"
 
 std::vector<std::unique_ptr<Device>> readDeviceTree()
 {
-    const auto stream=popen("usb-devices", "r");
-    if(!stream)
-    {
-        std::cerr << "Failed to run usb-devices\n";
-        return {};
-    }
     std::vector<std::unique_ptr<Device>> devices;
-    std::vector<std::string> description;
-    char buf[4096];
-    while(true)
+    namespace fs=std::filesystem;
+    for(const auto& entry : fs::directory_iterator(fs::u8path(u8"/sys/bus/usb/devices/")))
     {
-        const bool needToStop = !fgets(buf, sizeof buf - 1, stream);
-        if(buf[0]=='\n' || needToStop)
-        {
-            if(!description.empty())
-                devices.emplace_back(std::make_unique<Device>(description));
-            description.clear();
-            if(needToStop) break;
+        if(!startsWith(entry.path().filename().string(), "usb"))
             continue;
-        }
-        description.emplace_back(buf);
-        if(needToStop) break;
-    }
-    pclose(stream);
-
-    for(auto&& device : devices)
-    {
-        if(!device->valid())
-        {
-            std::cerr << "Device " << std::hex << device->vendorId << ":" << device->productId << std::dec
-                      << " has invalid/incomplete description: " << device->reasonIfInvalid.toStdString() << "\n";
-            return {};
-        }
+        devices.emplace_back(std::make_unique<Device>(entry.path()));
     }
 
-    return buildTree(std::move(devices));
+    return devices;
 }
 
 void createMenuBar(QMainWindow& mainWindow, DeviceTreeWidget*const treeWidget)
