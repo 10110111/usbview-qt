@@ -83,7 +83,7 @@ void DeviceTreeWidget::updateDeviceTree()
         rootItem->addChild(topLevelItem);
         insertChildren(topLevelItem, dev.get());
     }
-    expandItem(rootItem);
+    expandAll();
 }
 
 void DeviceTreeWidget::setTree(std::vector<std::unique_ptr<Device>>&& tree)
