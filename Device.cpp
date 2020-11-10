@@ -172,7 +172,7 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
 void Device::parseConfigs(fs::path const& devpath)
 {
     auto& config=configs.emplace_back();
-    config.active=true; // FIXME: where can inactive configs be found?
+    config.active=true; // FIXME: where can inactive configs be found? Answer: all config descriptors in binary form are in devpath/"descriptors" file.
     config.numInterfaces=getUInt(devpath/"bNumInterfaces", 10);
     config.configNum=getUInt(devpath/"bConfigurationValue", 10);
     config.attributes=getUInt(devpath/"bmAttributes", 16);
