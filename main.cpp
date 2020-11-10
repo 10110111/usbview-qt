@@ -1,6 +1,7 @@
 #include "Device.h"
 #include <stdio.h>
 #include <memory>
+#include <cassert>
 #include <iomanip>
 #include <iostream>
 #include <QScreen>
