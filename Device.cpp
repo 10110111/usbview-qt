@@ -12,6 +12,10 @@ bool startsWith(std::string_view line, std::string_view beginning)
 
 Device::Device(std::vector<std::string> const& descriptionLines)
 {
+	// Force '.' as the radix point, which is used by sysfs. We don't care to restore it
+	// after parsing, since we never display any numbers that should be localized.
+	std::setlocale(LC_NUMERIC,"C");
+
     for(const auto& line : descriptionLines)
     {
         if(line.size() < 2)
