@@ -1,4 +1,5 @@
 #include "Device.h"
+#include <clocale>
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
