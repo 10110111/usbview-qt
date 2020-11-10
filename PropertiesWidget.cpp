@@ -57,8 +57,18 @@ void PropertiesWidget::showDevice(Device const* dev)
         const auto configItem=new QTreeWidgetItem{QStringList{tr("Configuration %1").arg(config.configNum)}};
         configsItem->addChild(configItem);
 		configItem->setFirstColumnSpanned(true);
-        configItem->addChild(new QTreeWidgetItem{QStringList{tr("Attributes"),
-                                                 QString("0x%1").arg(config.attributes, 2, 16, QLatin1Char('0'))}});
+        const auto attribItem=new QTreeWidgetItem{QStringList{tr("Attributes"),
+                                                              QString("0x%1").arg(config.attributes, 2, 16, QLatin1Char('0'))}};
+        {
+            const auto poweringItem=new QTreeWidgetItem{QStringList{config.attributes&1<<6 ? tr("Self-powered") : tr("Bus-powered")}};
+            poweringItem->setFirstColumnSpanned(true);
+            attribItem->addChild(poweringItem);
+            const auto remoteWakeupItem=new QTreeWidgetItem{QStringList{config.attributes&1<<5 ? tr("Supports remote wakeup") :
+                                                                                                 tr("No remote wakeup support")}};
+            remoteWakeupItem->setFirstColumnSpanned(true);
+            attribItem->addChild(remoteWakeupItem);
+        }
+        configItem->addChild(attribItem);
         configItem->addChild(new QTreeWidgetItem{QStringList{tr("Max power needed"),
                                                  QString(tr(u8"%1\u202fmA")).arg(config.maxPowerMilliAmp)}});
         const auto ifacesItem=new QTreeWidgetItem{QStringList{tr("Interfaces")}};
