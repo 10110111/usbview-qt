@@ -79,8 +79,8 @@ void PropertiesWidget::showDevice(Device const* dev)
             const auto ifaceItem=new QTreeWidgetItem{QStringList{tr("Interface %1").arg(iface.ifaceNum)}};
             ifacesItem->addChild(ifaceItem);
 			ifaceItem->setFirstColumnSpanned(true);
-//            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active altsetting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
-            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Altsetting number"), QString::number(iface.altSettingNum)}});
+//            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active alternate setting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
+            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Alternate setting number"), QString::number(iface.altSettingNum)}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Class"), QString("0x%1 (%2)")
                                         .arg(iface.ifaceClass, 2, 16, QLatin1Char('0')).arg(iface.ifaceClassStr)}});
             QString subclassStr, protocolStr;
