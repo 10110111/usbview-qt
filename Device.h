@@ -8,6 +8,7 @@
 
 struct Device
 {
+    QString sysfsPath;
     QString devicePath;
 
 	unsigned vendorId;

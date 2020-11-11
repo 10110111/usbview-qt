@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <QObject>
+#include <QFileInfo>
 #include "util.hpp"
 
 namespace fs=std::filesystem;
@@ -231,10 +232,14 @@ Device::Device(fs::path const& devpath)
 
     const auto& path=devpath.string();
 
-    devicePath=QString::fromStdString(fs::canonical(devpath).string());
+    sysfsPath=QString::fromStdString(fs::canonical(devpath).string());
 
     busNum=getUInt(devpath/"busnum", 10);
     devNum=getUInt(devpath/"devnum", 10);
+
+	devicePath=QString("/dev/bus/usb/%1/%2").arg(busNum, 3, 10, QChar('0')).arg(devNum, 3, 10, QChar('0'));
+	if(!QFileInfo(devicePath).exists())
+		devicePath+=" (error: doesn't actually exist)";
 
     {
         const auto sep=path.find_last_of(".-");
