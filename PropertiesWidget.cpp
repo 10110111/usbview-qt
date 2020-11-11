@@ -102,49 +102,52 @@ void PropertiesWidget::showDevice(Device const* dev)
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Protocol"), protocolStr}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Driver"),
                                                     QString("%1").arg(iface.driver)}});
-            const auto endpointsItem=new QTreeWidgetItem{QStringList{
-                                        iface.endpoints.empty() ? tr("Endpoints (%1)").arg(iface.numEPs) : tr("Endpoints")}};
-            ifaceItem->addChild(endpointsItem);
-			endpointsItem->setFirstColumnSpanned(true);
-            for(const auto& ep : iface.endpoints)
+            if(iface.numEPs!=0 || !iface.endpoints.empty())
             {
-                const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint 0x%1").arg(ep.address, 2, 16, QLatin1Char('0'))}};
-                endpointsItem->addChild(epItem);
-				epItem->setFirstColumnSpanned(true);
-                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"),
-                                                                 ep.direction=="in"  ? tr("In")   :
-                                                                 ep.direction=="out" ? tr("Out")  :
-                                                                 ep.direction=="both"? tr("Both") :
-                                                                 ep.direction}});
-                const auto attribItem=new QTreeWidgetItem{QStringList{tr("Attributes"),
-                                                                      QString("0x%1").arg(ep.attributes, 2, 16, QLatin1Char('0'))}};
-                epItem->addChild(attribItem);
+                const auto endpointsItem=new QTreeWidgetItem{QStringList{
+                                            iface.endpoints.empty() ? tr("Endpoints (%1)").arg(iface.numEPs) : tr("Endpoints")}};
+                ifaceItem->addChild(endpointsItem);
+                endpointsItem->setFirstColumnSpanned(true);
+                for(const auto& ep : iface.endpoints)
                 {
-                    attribItem->addChild(new QTreeWidgetItem{QStringList{tr("Transfer type"),
-                                                                         ep.type=="Control"   ? tr("Control")     :
-                                                                         ep.type=="Isoc"      ? tr("Isochronous") :
-                                                                         ep.type=="Bulk"      ? tr("Bulk")        :
-                                                                         ep.type=="Interrupt" ? tr("Interrupt")   :
-                                                                         ep.type}});
-                    if(ep.type=="Isoc")
+                    const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint 0x%1").arg(ep.address, 2, 16, QLatin1Char('0'))}};
+                    endpointsItem->addChild(epItem);
+                    epItem->setFirstColumnSpanned(true);
+                    epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"),
+                                                                     ep.direction=="in"  ? tr("In")   :
+                                                                     ep.direction=="out" ? tr("Out")  :
+                                                                     ep.direction=="both"? tr("Both") :
+                                                                     ep.direction}});
+                    const auto attribItem=new QTreeWidgetItem{QStringList{tr("Attributes"),
+                                                                          QString("0x%1").arg(ep.attributes, 2, 16, QLatin1Char('0'))}};
+                    epItem->addChild(attribItem);
                     {
-                        attribItem->addChild(new QTreeWidgetItem{QStringList{tr("Synchronization type"),
-                                                                 (ep.attributes&0xc)==0x0 ? tr("No synchronization") :
-                                                                 (ep.attributes&0xc)==0x4 ? tr("Asynchronous")       :
-                                                                 (ep.attributes&0xc)==0x8 ? tr("Adaptive")           :
-                                                                 (ep.attributes&0xc)==0xc ? tr("Synchronous")        :
-                                                                 "(my bug, please report)"}});
-                        attribItem->addChild(new QTreeWidgetItem{QStringList{tr("Usage type"),
-                                                                 (ep.attributes&0x30)==0x00 ? tr("Data")                    :
-                                                                 (ep.attributes&0x30)==0x10 ? tr("Feedback")                :
-                                                                 (ep.attributes&0x30)==0x20 ? tr("Explicit feedback data")  :
-                                                                 (ep.attributes&0x30)==0x30 ? tr("(Reserved value)")        :
-                                                                 "(my bug, please report)"}});
+                        attribItem->addChild(new QTreeWidgetItem{QStringList{tr("Transfer type"),
+                                                                             ep.type=="Control"   ? tr("Control")     :
+                                                                             ep.type=="Isoc"      ? tr("Isochronous") :
+                                                                             ep.type=="Bulk"      ? tr("Bulk")        :
+                                                                             ep.type=="Interrupt" ? tr("Interrupt")   :
+                                                                             ep.type}});
+                        if(ep.type=="Isoc")
+                        {
+                            attribItem->addChild(new QTreeWidgetItem{QStringList{tr("Synchronization type"),
+                                                                     (ep.attributes&0xc)==0x0 ? tr("No synchronization") :
+                                                                     (ep.attributes&0xc)==0x4 ? tr("Asynchronous")       :
+                                                                     (ep.attributes&0xc)==0x8 ? tr("Adaptive")           :
+                                                                     (ep.attributes&0xc)==0xc ? tr("Synchronous")        :
+                                                                     "(my bug, please report)"}});
+                            attribItem->addChild(new QTreeWidgetItem{QStringList{tr("Usage type"),
+                                                                     (ep.attributes&0x30)==0x00 ? tr("Data")                    :
+                                                                     (ep.attributes&0x30)==0x10 ? tr("Feedback")                :
+                                                                     (ep.attributes&0x30)==0x20 ? tr("Explicit feedback data")  :
+                                                                     (ep.attributes&0x30)==0x30 ? tr("(Reserved value)")        :
+                                                                     "(my bug, please report)"}});
+                        }
                     }
+                    epItem->addChild(new QTreeWidgetItem{QStringList{tr("Max packet size"), QString::number(ep.maxPacketSize)}});
+                    epItem->addChild(new QTreeWidgetItem{QStringList{tr("Interval between transfers"),
+                                            QString(u8"%1\u202f%2").arg(ep.intervalBetweenTransfers).arg(ep.intervalUnit)}});
                 }
-                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Max packet size"), QString::number(ep.maxPacketSize)}});
-                epItem->addChild(new QTreeWidgetItem{QStringList{tr("Interval between transfers"),
-                                        QString(u8"%1\u202f%2").arg(ep.intervalBetweenTransfers).arg(ep.intervalUnit)}});
             }
         }
     }
