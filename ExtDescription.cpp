@@ -44,19 +44,18 @@ unsigned makeTree(QTreeWidgetItem*const root, QList<QByteArray> const& lines, co
         if(str.startsWith("Port "))
             str.replace(QRegularExpression("\\bPort ([0-9]+): "), "Port \\1  ");
 
+
+        auto prop=str.split("  ").front().trimmed();
+        const auto value=str.mid(prop.size()).trimmed();
+        if(!prop.isEmpty() && prop.back()==':')
+            prop.chop(1);
         QTreeWidgetItem* lineItem=nullptr;
-        if(str.back()==':')
-        {
-            lineItem=new QTreeWidgetItem{{str.chopped(1)}};
-            root->addChild(lineItem);
-        }
+        if(value.isEmpty())
+            lineItem=new QTreeWidgetItem{{prop}};
         else
-        {
-            const auto prop=str.split("  ").front();
-            const auto value=str.mid(prop.size()).trimmed();
             lineItem=new QTreeWidgetItem{{prop,value}};
-            root->addChild(lineItem);
-        }
+        root->addChild(lineItem);
+
         prevItem=lineItem;
     }
     return lines.size();
