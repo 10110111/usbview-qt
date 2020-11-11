@@ -24,24 +24,26 @@ enum DescriptorType
 
 QString name(const DescriptorType type)
 {
-    static const std::map<DescriptorType, const char*> types={
-        {DT_DEVICE,             "device"},
-        {DT_CONFIG,             "config"},
-        {DT_STRING,             "string"},
-        {DT_INTERFACE,          "interface"},
-        {DT_ENDPOINT,           "endpoint"},
-        {DT_DEVICE_QUALIFIER,   "device qualifier"},
-        {DT_OTHER_SPEED_CONFIG, "other speed config"},
-        {DT_INTERFACE_POWER,    "interface power"},
-        {DT_OTG,                "OTG"},
-        {DT_DEBUG,              "debug"},
-        {DT_INTERFACE_ASSOC,    "interface association"},
-        {DT_HID,                "HID"},
-        {DT_CS_INTERFACE,       "class-specific interface"},
-        {DT_CS_ENDPOINT,        "class-specific endpoint"},
+    static const std::map<DescriptorType, QString> types={
+        {DT_DEVICE,             QObject::tr("device")},
+        {DT_CONFIG,             QObject::tr("config")},
+        {DT_STRING,             QObject::tr("string")},
+        {DT_INTERFACE,          QObject::tr("interface")},
+        {DT_ENDPOINT,           QObject::tr("endpoint")},
+        {DT_DEVICE_QUALIFIER,   QObject::tr("device qualifier")},
+        {DT_OTHER_SPEED_CONFIG, QObject::tr("other speed config")},
+        {DT_INTERFACE_POWER,    QObject::tr("interface power")},
+        {DT_OTG,                QObject::tr("OTG")},
+        {DT_DEBUG,              QObject::tr("debug")},
+        {DT_INTERFACE_ASSOC,    QObject::tr("interface association")},
+        {DT_HID,                QObject::tr("HID")},
+        {DT_CS_INTERFACE,       QObject::tr("class-specific interface")},
+        {DT_CS_ENDPOINT,        QObject::tr("class-specific endpoint")},
     };
     const auto typeNameIt=types.find(type);
-    return typeNameIt==types.end() ? QString("unknown type 0x%1").arg(static_cast<unsigned>(type), 2, 16, QChar('0')) : typeNameIt->second;
+    if(typeNameIt==types.end())
+        return QObject::tr("unknown type 0x%1").arg(static_cast<unsigned>(type), 2, 16, QChar('0'));
+    return typeNameIt->second;
 }
 
 QString formatBytes(std::vector<uint8_t> const& data)
