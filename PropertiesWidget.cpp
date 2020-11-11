@@ -223,5 +223,6 @@ void PropertiesWidget::showDevice(Device const* dev)
 
 
     expandAll();
+    collapseItem(rawDescriptorsItem);
     resizeColumnToContents(0);
 }
