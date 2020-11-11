@@ -47,7 +47,7 @@ void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
     if(wantPortsShown_ && dev->maxChildren)
     {
         // dev is a hub, show all its ports between the hub and the children
-        for(unsigned port=0; port < dev->maxChildren; ++port)
+        for(unsigned port=1; port <= dev->maxChildren; ++port)
         {
             const auto portItem=new QTreeWidgetItem{QStringList{QString("[Port %1]").arg(port)}};
             item->addChild(portItem);
