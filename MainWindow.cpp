@@ -34,6 +34,12 @@ void MainWindow::createMenuBar()
         action->setCheckable(true);
         action->setChecked(false);
     }
+    {
+        const auto action = view->addAction(QObject::tr("Add output of &lsusb to device description"));
+        QObject::connect(action, &QAction::toggled, propsWidget_, &PropertiesWidget::setShowExtToolOutput);
+        action->setCheckable(true);
+        action->setChecked(false);
+    }
 
     menuBar->show();
 }

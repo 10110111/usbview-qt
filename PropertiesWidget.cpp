@@ -80,25 +80,31 @@ PropertiesWidget::PropertiesWidget(QWidget* parent)
 
 void PropertiesWidget::showDevice(Device const* dev)
 {
+    device_=dev;
+    updateTree();
+}
+
+void PropertiesWidget::updateTree()
+{
     clear();
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"SYSFS path", dev->sysfsPath}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Device path", dev->devicePath}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor Id", QString("0x%1").arg(dev->vendorId, 4, 16, QLatin1Char('0'))}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Product Id", QString("0x%1").arg(dev->productId, 4, 16, QLatin1Char('0'))}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Revision", dev->revision}});
-    if(!dev->manufacturer.isNull())
-        addTopLevelItem(new QTreeWidgetItem{QStringList{"Manufacturer", dev->manufacturer}});
-    if(!dev->product.isNull())
-        addTopLevelItem(new QTreeWidgetItem{QStringList{"Product", dev->product}});
-    if(!dev->serialNum.isNull())
-        addTopLevelItem(new QTreeWidgetItem{QStringList{"Serial number", dev->serialNum}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Bus", QString::number(dev->busNum)}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Address", QString::number(dev->devNum)}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"Port", QString::number(dev->port)}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{"USB version", dev->usbVersion}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"SYSFS path", device_->sysfsPath}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Device path", device_->devicePath}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor Id", QString("0x%1").arg(device_->vendorId, 4, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Product Id", QString("0x%1").arg(device_->productId, 4, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Revision", device_->revision}});
+    if(!device_->manufacturer.isNull())
+        addTopLevelItem(new QTreeWidgetItem{QStringList{"Manufacturer", device_->manufacturer}});
+    if(!device_->product.isNull())
+        addTopLevelItem(new QTreeWidgetItem{QStringList{"Product", device_->product}});
+    if(!device_->serialNum.isNull())
+        addTopLevelItem(new QTreeWidgetItem{QStringList{"Serial number", device_->serialNum}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Bus", QString::number(device_->busNum)}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Address", QString::number(device_->devNum)}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"Port", QString::number(device_->port)}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{"USB version", device_->usbVersion}});
     {
         QString speed;
-        const auto speedX10=dev->speed*10;
+        const auto speedX10=device_->speed*10;
         switch(int(speedX10))
         {
         case 15:     speed=tr(u8"1.5\u202fMb/s (low)");   break;
@@ -109,21 +115,21 @@ void PropertiesWidget::showDevice(Device const* dev)
         }
         if(speedX10!=int(speedX10) || speed.isNull())
         {
-            if(dev->speed<1000)
-                speed=tr(u8"%1\u202fMb/s").arg(dev->speed);
+            if(device_->speed<1000)
+                speed=tr(u8"%1\u202fMb/s").arg(device_->speed);
             else
-                speed=tr(u8"%1\u202fGb/s").arg(dev->speed/1000);
+                speed=tr(u8"%1\u202fGb/s").arg(device_->speed/1000);
         }
         addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Speed"), speed}});
     }
-    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device class"), QString("0x%1 (%2)").arg(dev->devClass, 2, 16, QLatin1Char('0'))
-                                                                                      .arg(dev->devClassStr)}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device subclass"), QString("0x%1").arg(dev->devSubClass, 2, 16, QLatin1Char('0'))}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device protocol"), QString("0x%1").arg(dev->devProtocol, 2, 16, QLatin1Char('0'))}});
-    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Max default endpoint packet size"), QString::number(dev->maxPacketSize)}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device class"), QString("0x%1 (%2)").arg(device_->devClass, 2, 16, QLatin1Char('0'))
+                                                                                      .arg(device_->devClassStr)}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device subclass"), QString("0x%1").arg(device_->devSubClass, 2, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Device protocol"), QString("0x%1").arg(device_->devProtocol, 2, 16, QLatin1Char('0'))}});
+    addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Max default endpoint packet size"), QString::number(device_->maxPacketSize)}});
     const auto configsItem=new QTreeWidgetItem{QStringList{tr("Configurations")}};
     addTopLevelItem(configsItem);
-    for(const auto& config : dev->configs)
+    for(const auto& config : device_->configs)
     {
         const auto configItem=new QTreeWidgetItem{QStringList{tr("Configuration %1").arg(config.configNum)}};
         configsItem->addChild(configItem);
@@ -218,7 +224,7 @@ void PropertiesWidget::showDevice(Device const* dev)
 
     const auto rawDescriptorsItem=new QTreeWidgetItem{QStringList{tr("Raw descriptors")}};
     addTopLevelItem(rawDescriptorsItem);
-    for(const auto& desc : dev->rawDescriptors)
+    for(const auto& desc : device_->rawDescriptors)
     {
         QString name;
         if(desc.size()<2)
@@ -229,14 +235,25 @@ void PropertiesWidget::showDevice(Device const* dev)
         rawDescriptorsItem->addChild(descItem);
     }
 
-	const auto extToolOutputItem=getExternalDescription(*dev);
-	addTopLevelItem(extToolOutputItem);
+	QTreeWidgetItem* extToolOutputItem=nullptr;
+    if(wantExtToolOutput_)
+    {
+        extToolOutputItem=getExternalDescription(*device_);
+        addTopLevelItem(extToolOutputItem);
+    }
 
     for(int i=0; i<topLevelItemCount(); ++i)
         setFirstColumnSpannedForAllSingleColumnItems(topLevelItem(i));
 
     expandAll();
     collapseItem(rawDescriptorsItem);
-	collapseItem(extToolOutputItem);
+    if(extToolOutputItem)
+        collapseItem(extToolOutputItem);
     resizeColumnToContents(0);
+}
+
+void PropertiesWidget::setShowExtToolOutput(const bool enable)
+{
+    wantExtToolOutput_=enable;
+    showDevice(device_);
 }
