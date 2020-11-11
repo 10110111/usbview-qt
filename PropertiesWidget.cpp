@@ -20,6 +20,9 @@ enum DescriptorType
     DT_HID=0x21,
     DT_CS_INTERFACE=0x24, // class-specific interface
     DT_CS_ENDPOINT=0x25,  // class-specific endpoint
+    DT_HUB=0x29,
+    DT_ENHANCED_SUPERSPEED_HUB=0x2a,
+    DT_SS_ENDPOINT_COMPANION=0x30,
 };
 
 QString name(const DescriptorType type)
@@ -39,6 +42,9 @@ QString name(const DescriptorType type)
         {DT_HID,                QObject::tr("HID")},
         {DT_CS_INTERFACE,       QObject::tr("class-specific interface")},
         {DT_CS_ENDPOINT,        QObject::tr("class-specific endpoint")},
+        {DT_HUB,                QObject::tr("hub")},
+        {DT_ENHANCED_SUPERSPEED_HUB,QObject::tr("enhanced SuperSpeed hub")},
+        {DT_SS_ENDPOINT_COMPANION,QObject::tr("SuperSpeed endpoint companion")},
     };
     const auto typeNameIt=types.find(type);
     if(typeNameIt==types.end())
