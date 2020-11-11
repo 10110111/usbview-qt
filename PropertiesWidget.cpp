@@ -62,6 +62,14 @@ QString formatBytes(std::vector<uint8_t> const& data)
     return str.trimmed();
 }
 
+void setFirstColumnSpannedForAllSingleColumnItems(QTreeWidgetItem* item)
+{
+    if(item->columnCount()==1)
+        item->setFirstColumnSpanned(true);
+    for(int i=0; i<item->childCount(); ++i)
+        setFirstColumnSpannedForAllSingleColumnItems(item->child(i));
+}
+
 }
 
 PropertiesWidget::PropertiesWidget(QWidget* parent)
@@ -115,34 +123,28 @@ void PropertiesWidget::showDevice(Device const* dev)
     addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Max default endpoint packet size"), QString::number(dev->maxPacketSize)}});
     const auto configsItem=new QTreeWidgetItem{QStringList{tr("Configurations")}};
     addTopLevelItem(configsItem);
-	configsItem->setFirstColumnSpanned(true);
     for(const auto& config : dev->configs)
     {
         const auto configItem=new QTreeWidgetItem{QStringList{tr("Configuration %1").arg(config.configNum)}};
         configsItem->addChild(configItem);
-		configItem->setFirstColumnSpanned(true);
         const auto attribItem=new QTreeWidgetItem{QStringList{tr("Attributes"),
                                                               QString("0x%1").arg(config.attributes, 2, 16, QLatin1Char('0'))}};
         configItem->addChild(attribItem);
         {
             const auto poweringItem=new QTreeWidgetItem{QStringList{config.attributes&1<<6 ? tr("Self-powered") : tr("Bus-powered")}};
             attribItem->addChild(poweringItem);
-            poweringItem->setFirstColumnSpanned(true);
             const auto remoteWakeupItem=new QTreeWidgetItem{QStringList{config.attributes&1<<5 ? tr("Supports remote wakeup") :
                                                                                                  tr("No remote wakeup support")}};
             attribItem->addChild(remoteWakeupItem);
-            remoteWakeupItem->setFirstColumnSpanned(true);
         }
         configItem->addChild(new QTreeWidgetItem{QStringList{tr("Max power needed"),
                                                  QString(tr(u8"%1\u202fmA")).arg(config.maxPowerMilliAmp)}});
         const auto ifacesItem=new QTreeWidgetItem{QStringList{tr("Interfaces")}};
         configItem->addChild(ifacesItem);
-		ifacesItem->setFirstColumnSpanned(true);
         for(const auto& iface : config.interfaces)
         {
             const auto ifaceItem=new QTreeWidgetItem{QStringList{tr("Interface %1").arg(iface.ifaceNum)}};
             ifacesItem->addChild(ifaceItem);
-			ifaceItem->setFirstColumnSpanned(true);
 //            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active alternate setting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Alternate setting number"), QString::number(iface.altSettingNum)}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Class"), QString("0x%1 (%2)")
@@ -171,12 +173,10 @@ void PropertiesWidget::showDevice(Device const* dev)
                 const auto endpointsItem=new QTreeWidgetItem{QStringList{
                                             iface.endpoints.empty() ? tr("Endpoints (%1)").arg(iface.numEPs) : tr("Endpoints")}};
                 ifaceItem->addChild(endpointsItem);
-                endpointsItem->setFirstColumnSpanned(true);
                 for(const auto& ep : iface.endpoints)
                 {
                     const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint 0x%1").arg(ep.address, 2, 16, QLatin1Char('0'))}};
                     endpointsItem->addChild(epItem);
-                    epItem->setFirstColumnSpanned(true);
                     epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"),
                                                                      ep.direction=="in"  ? tr("In")   :
                                                                      ep.direction=="out" ? tr("Out")  :
@@ -218,7 +218,6 @@ void PropertiesWidget::showDevice(Device const* dev)
 
     const auto rawDescriptorsItem=new QTreeWidgetItem{QStringList{tr("Raw descriptors")}};
     addTopLevelItem(rawDescriptorsItem);
-    rawDescriptorsItem->setFirstColumnSpanned(true);
     for(const auto& desc : dev->rawDescriptors)
     {
         QString name;
@@ -233,6 +232,8 @@ void PropertiesWidget::showDevice(Device const* dev)
 	const auto extToolOutputItem=getExternalDescription(*dev);
 	addTopLevelItem(extToolOutputItem);
 
+    for(int i=0; i<topLevelItemCount(); ++i)
+        setFirstColumnSpannedForAllSingleColumnItems(topLevelItem(i));
 
     expandAll();
     collapseItem(rawDescriptorsItem);
