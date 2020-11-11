@@ -1,5 +1,7 @@
 #include "PropertiesWidget.h"
+#include <QProcess>
 #include "Device.h"
+#include "ExtDescription.h"
 
 namespace
 {
@@ -228,8 +230,12 @@ void PropertiesWidget::showDevice(Device const* dev)
         rawDescriptorsItem->addChild(descItem);
     }
 
+	const auto extToolOutputItem=getExternalDescription(*dev);
+	addTopLevelItem(extToolOutputItem);
+
 
     expandAll();
     collapseItem(rawDescriptorsItem);
+	collapseItem(extToolOutputItem);
     resizeColumnToContents(0);
 }

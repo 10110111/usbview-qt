@@ -16,6 +16,7 @@ add_executable(usbview-qt
     Device.cpp
     MainWindow.cpp
     DeviceTree.cpp
+	ExtDescription.cpp
     DeviceTreeWidget.cpp
     PropertiesWidget.cpp
     )
