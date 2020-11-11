@@ -41,6 +41,8 @@ unsigned makeTree(QTreeWidgetItem*const root, QList<QByteArray> const& lines, co
         auto str=QString(line).trimmed();
         if(str.startsWith("Item("))
             str.replace(QRegularExpression("\\bItem\\((Local|Main|Global) *\\):"), "Item (\\1)  ");
+        if(str.startsWith("Port "))
+            str.replace(QRegularExpression("\\bPort ([0-9]+): "), "Port \\1  ");
 
         QTreeWidgetItem* lineItem=nullptr;
         if(str.back()==':')
