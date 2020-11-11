@@ -68,6 +68,8 @@ struct Device
     Endpoint endpoint00;
     std::vector<Config> configs;
 
+    std::vector<std::vector<uint8_t>> rawDescriptors;
+
     QString name;
     std::vector<std::unique_ptr<Device>> children;
 
@@ -76,4 +78,5 @@ private:
     void parseConfigs(std::filesystem::path const& devpath);
     void parseEndpoint(std::filesystem::path const& devpath, Endpoint& ep);
     void parseInterface(std::filesystem::path const& intPath, Interface& iface);
+    void readBinaryDescriptors(std::filesystem::path const& devpath);
 };

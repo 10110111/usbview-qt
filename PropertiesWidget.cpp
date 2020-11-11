@@ -1,6 +1,59 @@
 #include "PropertiesWidget.h"
 #include "Device.h"
 
+namespace
+{
+
+enum DescriptorType
+{
+    DT_DEVICE = 1,
+    DT_CONFIG,
+    DT_STRING,
+    DT_INTERFACE,
+    DT_ENDPOINT,
+    DT_DEVICE_QUALIFIER,
+    DT_OTHER_SPEED_CONFIG,
+    DT_INTERFACE_POWER,
+    DT_OTG,
+    DT_DEBUG,
+    DT_INTERFACE_ASSOC,
+    DT_HID=0x21,
+    DT_CS_INTERFACE=0x24, // class-specific interface
+    DT_CS_ENDPOINT=0x25,  // class-specific endpoint
+};
+
+QString name(const DescriptorType type)
+{
+    static const std::map<DescriptorType, const char*> types={
+        {DT_DEVICE,             "device"},
+        {DT_CONFIG,             "config"},
+        {DT_STRING,             "string"},
+        {DT_INTERFACE,          "interface"},
+        {DT_ENDPOINT,           "endpoint"},
+        {DT_DEVICE_QUALIFIER,   "device qualifier"},
+        {DT_OTHER_SPEED_CONFIG, "other speed config"},
+        {DT_INTERFACE_POWER,    "interface power"},
+        {DT_OTG,                "OTG"},
+        {DT_DEBUG,              "debug"},
+        {DT_INTERFACE_ASSOC,    "interface association"},
+        {DT_HID,                "HID"},
+        {DT_CS_INTERFACE,       "class-specific interface"},
+        {DT_CS_ENDPOINT,        "class-specific endpoint"},
+    };
+    const auto typeNameIt=types.find(type);
+    return typeNameIt==types.end() ? QString("unknown type 0x%1").arg(static_cast<unsigned>(type), 2, 16, QChar('0')) : typeNameIt->second;
+}
+
+QString formatBytes(std::vector<uint8_t> const& data)
+{
+    QString str;
+    for(const auto byte : data)
+        str += QString("%1 ").arg(+byte, 2, 16, QChar('0'));
+    return str.trimmed();
+}
+
+}
+
 PropertiesWidget::PropertiesWidget(QWidget* parent)
     : QTreeWidget(parent)
 {
@@ -151,6 +204,21 @@ void PropertiesWidget::showDevice(Device const* dev)
             }
         }
     }
+
+    const auto rawDescriptorsItem=new QTreeWidgetItem{QStringList{tr("Raw descriptors")}};
+    addTopLevelItem(rawDescriptorsItem);
+    rawDescriptorsItem->setFirstColumnSpanned(true);
+    for(const auto& desc : dev->rawDescriptors)
+    {
+        QString name;
+        if(desc.size()<2)
+            name=tr("(broken)");
+        else
+            name=::name(static_cast<DescriptorType>(desc[1]));
+        const auto descItem=new QTreeWidgetItem{QStringList{name, formatBytes(desc)}};
+        rawDescriptorsItem->addChild(descItem);
+    }
+
 
     expandAll();
     resizeColumnToContents(0);

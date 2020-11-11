@@ -1,4 +1,5 @@
 #include "Device.h"
+#include <map>
 #include <regex>
 #include <string>
 #include <cassert>
@@ -196,6 +197,32 @@ void Device::parseConfigs(fs::path const& devpath)
     }
 }
 
+void Device::readBinaryDescriptors(std::filesystem::path const& devpath)
+{
+    std::ifstream file(devpath/"descriptors");
+    if(!file)
+        throw std::invalid_argument("Failed to open descriptors file under \""+devpath.string()+"\"");
+    file.seekg(0, std::ios_base::end);
+    const auto size=file.tellg();
+    file.seekg(0);
+    std::vector<uint8_t> data(size);
+    file.read(reinterpret_cast<char*>(data.data()), size);
+    if(!file)
+    {
+        if(file.gcount()==0)
+            throw std::invalid_argument("Failed to read descriptors file under \""+devpath.string()+"\"");
+        data.resize(file.gcount());
+    }
+    for(unsigned off=0; off<data.size();)
+    {
+        const unsigned len=data[off];
+        if(data.size() < off+len)
+            throw std::invalid_argument("Bad descriptor: length at offset "+std::to_string(off)+" overflows data size");
+        rawDescriptors.emplace_back(std::vector<uint8_t>(data.data()+off, data.data()+off+len));
+        off+=len;
+    }
+}
+
 Device::Device(fs::path const& devpath)
 {
 	// Force '.' as the radix point, which is used by sysfs. We don't care to restore it
@@ -247,6 +274,8 @@ Device::Device(fs::path const& devpath)
     serialNum=getDevString(devpath/"serial");
 
     parseConfigs(devpath);
+
+    readBinaryDescriptors(devpath);
 
     const auto busNumStr=std::to_string(busNum);
     for(const auto& entry : fs::directory_iterator(devpath))
