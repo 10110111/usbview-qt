@@ -87,6 +87,7 @@ void PropertiesWidget::showDevice(Device const* dev)
 void PropertiesWidget::updateTree()
 {
     clear();
+    if(!device_) return;
     addTopLevelItem(new QTreeWidgetItem{QStringList{"SYSFS path", device_->sysfsPath}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Device path", device_->devicePath}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor Id", QString("0x%1").arg(device_->vendorId, 4, 16, QLatin1Char('0'))}});
