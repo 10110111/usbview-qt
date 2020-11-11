@@ -14,6 +14,8 @@ find_package(Qt5 5.9 REQUIRED Core Widgets)
 add_executable(usbview-qt
     main.cpp
     Device.cpp
+    MainWindow.cpp
+    DeviceTree.cpp
     DeviceTreeWidget.cpp
     PropertiesWidget.cpp
     )
