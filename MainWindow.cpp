@@ -51,6 +51,8 @@ MainWindow::MainWindow()
     setWindowTitle(QObject::tr("USB Device Tree"));
     splitter_->addWidget(treeWidget_);
     splitter_->addWidget(propsWidget_);
+    splitter_->setStretchFactor(1,1);
+    splitter_->setStretchFactor(0,0);
     setCentralWidget(splitter_);
 
     QObject::connect(treeWidget_, &DeviceTreeWidget::deviceSelected, propsWidget_, &PropertiesWidget::showDevice);
