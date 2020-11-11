@@ -13,5 +13,8 @@ std::vector<std::unique_ptr<Device>> readDeviceTree()
         devices.emplace_back(std::make_unique<Device>(entry.path()));
     }
 
+    std::sort(devices.begin(), devices.end(), [](auto const& d1, auto const& d2)
+              {return d1->busNum < d2->busNum;});
+
     return devices;
 }
