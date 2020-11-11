@@ -41,6 +41,8 @@ void MainWindow::createMenuBar()
 void MainWindow::refresh()
 {
     treeWidget_->setTree(readDeviceTree());
+    const auto treeWidth=std::min(treeWidget_->sizeHint().width(), width()/2);
+    splitter_->setSizes({treeWidth, width()-treeWidth});
 }
 
 MainWindow::MainWindow()
