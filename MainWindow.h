@@ -12,6 +12,7 @@ class MainWindow : public QMainWindow
     QSplitter* splitter_;
 
     void createMenuBar();
+    void onTreeUpdated();
     void refresh();
 public:
     MainWindow();

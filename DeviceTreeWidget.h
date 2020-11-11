@@ -22,8 +22,10 @@ public:
     void setTree(std::vector<std::unique_ptr<Device>>&& tree);
     void setShowPorts(bool enable);
     void setShowVendorProductIds(bool enable);
+    QSize sizeHint() const override;
 
 signals:
     void deviceSelected(Device*);
     void devicesUnselected();
+    void treeUpdated();
 };

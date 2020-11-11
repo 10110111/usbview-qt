@@ -47,6 +47,10 @@ void MainWindow::createMenuBar()
 void MainWindow::refresh()
 {
     treeWidget_->setTree(readDeviceTree());
+}
+
+void MainWindow::onTreeUpdated()
+{
     const auto treeWidth=std::min(treeWidget_->sizeHint().width(), width()/2);
     splitter_->setSizes({treeWidth, width()-treeWidth});
 }
@@ -65,6 +69,7 @@ MainWindow::MainWindow()
 
     QObject::connect(treeWidget_, &DeviceTreeWidget::deviceSelected, propsWidget_, &PropertiesWidget::showDevice);
     QObject::connect(treeWidget_, &DeviceTreeWidget::devicesUnselected, propsWidget_, &PropertiesWidget::clear);
+    connect(treeWidget_, &DeviceTreeWidget::treeUpdated, this, &MainWindow::onTreeUpdated);
 
     createMenuBar();
 

@@ -1,5 +1,6 @@
 #include "DeviceTreeWidget.h"
 #include <iostream>
+#include <QHeaderView>
 #include "Device.h"
 
 namespace
@@ -27,6 +28,7 @@ DeviceTreeWidget::DeviceTreeWidget(QWidget* parent)
     : QTreeWidget(parent)
 {
     setHeaderLabel("USB devices");
+    header()->setStretchLastSection(false);
     connect(this, &QTreeWidget::itemSelectionChanged, this, &DeviceTreeWidget::onSelectionChanged);
 }
 
@@ -84,12 +86,21 @@ void DeviceTreeWidget::updateDeviceTree()
         insertChildren(topLevelItem, dev.get());
     }
     expandAll();
+
+    resizeColumnToContents(0);
+    emit treeUpdated();
 }
 
 void DeviceTreeWidget::setTree(std::vector<std::unique_ptr<Device>>&& tree)
 {
     deviceTree_=std::move(tree);
     updateDeviceTree();
+}
+
+QSize DeviceTreeWidget::sizeHint() const
+{
+    // FIXME: dunno what size exactly we need to avoid scrollbars. Will request a bit larger than the section size.
+    return QSize(header()->sectionSize(0)*1.05, QTreeWidget::sizeHint().height());
 }
 
 void DeviceTreeWidget::setShowPorts(const bool enable)
