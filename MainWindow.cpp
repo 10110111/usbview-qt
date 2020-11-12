@@ -40,6 +40,12 @@ void MainWindow::createMenuBar()
         action->setCheckable(true);
         action->setChecked(false);
     }
+    {
+        const auto action = view->addAction(QObject::tr("&Wrap raw data dumps after every 16 bytes"));
+        QObject::connect(action, &QAction::toggled, propsWidget_, &PropertiesWidget::setWrapRawDumps);
+        action->setCheckable(true);
+        action->setChecked(false);
+    }
 
     menuBar->show();
 }

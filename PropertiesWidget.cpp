@@ -61,11 +61,15 @@ QString name(const DescriptorType type)
     return typeNameIt->second;
 }
 
-QString formatBytes(std::vector<uint8_t> const& data)
+QString formatBytes(std::vector<uint8_t> const& data, const bool wrap)
 {
     QString str;
-    for(const auto byte : data)
-        str += QString("%1 ").arg(+byte, 2, 16, QChar('0'));
+    for(unsigned i=0; i<data.size(); ++i)
+	{
+        str += QString("%1 ").arg(+data[i], 2, 16, QChar('0'));
+		if(wrap && (i+1)%16 == 0)
+			str += '\n';
+	}
     return str.trimmed();
 }
 
@@ -213,7 +217,7 @@ void PropertiesWidget::updateTree()
                 ifaceItem->addChild(hidReportDescriptorsItem);
                 for(const auto& desc : iface.hidReportDescriptors)
                 {
-                    const auto descItem=new QTreeWidgetItem{QStringList{formatBytes(desc)}};
+                    const auto descItem=new QTreeWidgetItem{QStringList{formatBytes(desc, wantWrapRawDumps_)}};
                     descItem->setFont(0, monoFont);
                     hidReportDescriptorsItem->addChild(descItem);
                 }
@@ -276,7 +280,7 @@ void PropertiesWidget::updateTree()
             name=tr("(broken)");
         else
             name=::name(static_cast<DescriptorType>(desc[1]));
-        const auto descItem=new QTreeWidgetItem{QStringList{name, formatBytes(desc)}};
+        const auto descItem=new QTreeWidgetItem{QStringList{name, formatBytes(desc, wantWrapRawDumps_)}};
         descItem->setFont(1, monoFont);
         rawDescriptorsItem->addChild(descItem);
     }
@@ -301,5 +305,11 @@ void PropertiesWidget::updateTree()
 void PropertiesWidget::setShowExtToolOutput(const bool enable)
 {
     wantExtToolOutput_=enable;
+    showDevice(device_);
+}
+
+void PropertiesWidget::setWrapRawDumps(const bool enable)
+{
+    wantWrapRawDumps_=enable;
     showDevice(device_);
 }
