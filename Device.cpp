@@ -180,10 +180,11 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
     if(fs::exists(driverLink) && fs::is_symlink(driverLink))
         iface.driver=QString::fromStdString(fs::read_symlink(driverLink).filename().string());
 
-    const auto hidDirNamePrefix=QString("%1:%2:%3.").arg(busNum, 4, 16, QChar('0'))
-                                                    .arg(vendorId, 4, 16, QChar('0'))
-                                                    .arg(productId, 4, 16, QChar('0'))
-                                                    .toUpper();
+	// 0003 means BUS_USB; the directory name itself is generated in linux-4.14.157/drivers/hid/hid-core.c
+	// with format %04X:%04X:%04X.%04X
+    const auto hidDirNamePrefix=QString("0003:%2:%3.").arg(vendorId, 4, 16, QChar('0'))
+                                                      .arg(productId, 4, 16, QChar('0'))
+                                                      .toUpper();
     for(const auto& entry : fs::directory_iterator(intPath))
     {
         const auto epPath=entry.path();
