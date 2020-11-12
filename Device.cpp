@@ -210,9 +210,12 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
                 }
             }
         }
-        if(exists(epPath/"input"))
+        auto possibleInput = epPath; // for input devices without HID subsystem: e.g. some webcams
+        if(possibleInput.filename().string()!="input")
+            possibleInput/="input"; // for HID input devices
+        if(exists(possibleInput))
         {
-            for(const auto& entry : fs::directory_iterator(epPath/"input"))
+            for(const auto& entry : fs::directory_iterator(possibleInput))
             {
                 if(startsWith(entry.path().filename().string(),"input"))
                 {
