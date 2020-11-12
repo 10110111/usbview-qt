@@ -50,6 +50,8 @@ QString devClassName(const uint8_t classId)
 unsigned getUInt(fs::path const& filePath, const int base)
 {
     std::ifstream file(filePath);
+    if(!file)
+        throw std::invalid_argument("Failed to open file \""+filePath.string()+"\"");
     switch(base)
     {
     case 16: file >> std::hex; break;
@@ -79,6 +81,8 @@ unsigned getUInt(std::string const& str, const int base)
 double getDouble(fs::path const& filePath)
 {
     std::ifstream file(filePath);
+    if(!file)
+        throw std::invalid_argument("Failed to open file \""+filePath.string()+"\"");
     double value;
     file >> value;
     if(!file)
@@ -101,6 +105,8 @@ QString getString(fs::path const& filePath)
 {
     char data[4097];
     std::ifstream file(filePath);
+    if(!file)
+        throw std::invalid_argument("Failed to open file \""+filePath.string()+"\"");
     file.read(data, sizeof data);
     if(!file.gcount())
         throw std::invalid_argument("Failed to read file \""+filePath.string()+"\"");
