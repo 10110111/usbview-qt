@@ -1,5 +1,7 @@
 #include "PropertiesWidget.h"
+#include <iostream>
 #include <QProcess>
+#include <QFontDatabase>
 #include "Device.h"
 #include "ExtDescription.h"
 
@@ -75,6 +77,28 @@ void setFirstColumnSpannedForAllSingleColumnItems(QTreeWidgetItem* item)
         setFirstColumnSpannedForAllSingleColumnItems(item->child(i));
 }
 
+bool isFixedPitch(QFont const& font)
+{
+    return QFontInfo(font).fixedPitch();
+}
+
+QFont getMonospaceFont(QFont const& base)
+{
+    if(const auto font=QFontDatabase::systemFont(QFontDatabase::FixedFont); isFixedPitch(font)) return font;
+    auto font(base);
+    if(isFixedPitch(font)) return font;
+    font.setFamily("monospace");
+    if(isFixedPitch(font)) return font;
+    font.setStyleHint(QFont::Monospace);
+    if(isFixedPitch(font)) return font;
+    font.setStyleHint(QFont::TypeWriter);
+    if(isFixedPitch(font)) return font;
+    font.setFamily("courier");
+    if(isFixedPitch(font)) return font;
+    std::cerr << "Warning: failed to get a monospace font\n";
+    return font;
+}
+
 }
 
 PropertiesWidget::PropertiesWidget(QWidget* parent)
@@ -93,6 +117,8 @@ void PropertiesWidget::updateTree()
 {
     clear();
     if(!device_) return;
+
+    const auto monoFont=getMonospaceFont(font());
     addTopLevelItem(new QTreeWidgetItem{QStringList{"SYSFS path", device_->sysfsPath}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Device path", device_->devicePath}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor Id", QString("0x%1").arg(device_->vendorId, 4, 16, QLatin1Char('0'))}});
@@ -186,7 +212,11 @@ void PropertiesWidget::updateTree()
                 const auto hidReportDescriptorsItem=new QTreeWidgetItem{QStringList{tr("HID report descriptors")}};
                 ifaceItem->addChild(hidReportDescriptorsItem);
                 for(const auto& desc : iface.hidReportDescriptors)
-                    hidReportDescriptorsItem->addChild(new QTreeWidgetItem{QStringList{formatBytes(desc)}});
+                {
+                    const auto descItem=new QTreeWidgetItem{QStringList{formatBytes(desc)}};
+                    descItem->setFont(0, monoFont);
+                    hidReportDescriptorsItem->addChild(descItem);
+                }
 
             }
             if(iface.numEPs!=0 || !iface.endpoints.empty())
@@ -247,6 +277,7 @@ void PropertiesWidget::updateTree()
         else
             name=::name(static_cast<DescriptorType>(desc[1]));
         const auto descItem=new QTreeWidgetItem{QStringList{name, formatBytes(desc)}};
+        descItem->setFont(1, monoFont);
         rawDescriptorsItem->addChild(descItem);
     }
 
