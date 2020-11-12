@@ -13,6 +13,11 @@
 #include "util.hpp"
 #include "common.hpp"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#undef major
+#undef minor
+
 namespace fs=std::filesystem;
 
 namespace
@@ -142,6 +147,30 @@ bool matches(std::string const& str, std::string const& pattern)
     return std::regex_match(str, std::regex(pattern));
 }
 
+std::vector<QString> findDeviceNodes(const unsigned major, const unsigned minor)
+{
+    std::vector<QString> nodes;
+    for(const auto& entry : fs::recursive_directory_iterator("/dev"))
+    {
+        const auto& path=entry.path();
+        if(is_symlink(path)) continue;
+        if(!is_block_file(path) && !is_character_file(path)) continue;
+
+        struct stat st;
+        if(stat(path.string().c_str(), &st)<0)
+        {
+            perror(("stat("+path.string()+")").c_str());
+            continue;
+        }
+        if(gnu_dev_major(st.st_rdev)!=major || gnu_dev_minor(st.st_rdev)!=minor) continue;
+
+        nodes.emplace_back(QString::fromStdString(canonical(path).string()));
+    }
+    if(nodes.empty())
+        std::cerr << "Warning: couldn't find device node with major=" << major << ", minor=" << minor << "\n";
+    return nodes;
+}
+
 }
 
 void Device::parseEndpoint(fs::path const& epPath, Endpoint& ep)
@@ -199,54 +228,35 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
         if(startsWith(filename, hidDirNamePrefix.toStdString().c_str()))
             iface.hidReportDescriptors.emplace_back(getFileData(entry.path()/"report_descriptor"));
 
-        if(iface.ifaceClass==CLASS_HID && exists(epPath/"hidraw"))
+        if(is_directory(epPath))
         {
-            for(const auto& entry : fs::directory_iterator(epPath/"hidraw"))
+            for(const auto& entry : fs::recursive_directory_iterator(epPath))
             {
-                if(startsWith(entry.path().filename().string(),"hidraw"))
+                const auto& path=entry.path();
+                if(path.filename().string()!="dev") continue;
+                if(!is_regular_file(path)) continue;
+                const auto majorMinorStr=getString(path).split(':');
+                if(majorMinorStr.size()!=2)
                 {
-                    auto devicePath=QString::fromStdString(("/dev"/entry.path().filename()).string());
-                    if(!QFileInfo(devicePath).exists())
-                        devicePath+=" (error: doesn't actually exist)";
-                    iface.deviceNodes.emplace_back(devicePath);
+                    std::cerr << "Warning: unexpected contents of " << path << "\n";
+                    continue;
                 }
-            }
-        }
-
-        if(iface.ifaceClass==CLASS_VIDEO && epPath.filename().string()=="video4linux")
-        {
-            for(const auto& entry : fs::directory_iterator(epPath))
-            {
-                if(startsWith(entry.path().filename().string(),"video"))
+                bool ok=false;
+                const int major=majorMinorStr[0].toUInt(&ok);
+                if(!ok)
                 {
-                    auto devicePath=QString::fromStdString(("/dev"/entry.path().filename()).string());
-                    if(!QFileInfo(devicePath).exists())
-                        devicePath+=" (error: doesn't actually exist)";
-                    iface.deviceNodes.emplace_back(devicePath);
+                    std::cerr << "Warning: failed to parse major device number " << path << "\n";
+                    continue;
                 }
-            }
-        }
-
-        auto possibleInput = epPath; // for input devices without HID subsystem: e.g. some webcams
-        if(possibleInput.filename().string()!="input")
-            possibleInput/="input"; // for HID input devices
-        if(exists(possibleInput))
-        {
-            for(const auto& entry : fs::directory_iterator(possibleInput))
-            {
-                if(startsWith(entry.path().filename().string(),"input"))
+                const int minor=majorMinorStr[1].toUInt(&ok);
+                if(!ok)
                 {
-                    for(const auto& inner : fs::directory_iterator(entry.path()))
-                    {
-                        if(exists(inner.path()/"dev"))
-                        {
-                            auto devicePath=QString::fromStdString(("/dev/input/"/inner.path().filename()).string());
-                            if(!QFileInfo(devicePath).exists())
-                                devicePath+=" (error: doesn't actually exist)";
-                            iface.deviceNodes.emplace_back(devicePath);
-                        }
-                    }
+                    std::cerr << "Warning: failed to parse minor device number " << path << "\n";
+                    continue;
                 }
+                auto nodes=findDeviceNodes(major,minor);
+                iface.deviceNodes.insert(iface.deviceNodes.end(), std::make_move_iterator(nodes.begin()),
+                                                                  std::make_move_iterator(nodes.end()));
             }
         }
     }
