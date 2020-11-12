@@ -195,8 +195,10 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
             auto& ep=iface.endpoints.emplace_back();
             parseEndpoint(epPath, ep);
         }
+
         if(startsWith(filename, hidDirNamePrefix.toStdString().c_str()))
             iface.hidReportDescriptors.emplace_back(getFileData(entry.path()/"report_descriptor"));
+
         if(iface.ifaceClass==CLASS_HID && exists(epPath/"hidraw"))
         {
             for(const auto& entry : fs::directory_iterator(epPath/"hidraw"))
@@ -210,6 +212,21 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
                 }
             }
         }
+
+        if(iface.ifaceClass==CLASS_VIDEO && epPath.filename().string()=="video4linux")
+        {
+            for(const auto& entry : fs::directory_iterator(epPath))
+            {
+                if(startsWith(entry.path().filename().string(),"video") && exists(entry.path()/"dev"))
+                {
+                    auto devicePath=QString::fromStdString(("/dev"/entry.path().filename()).string());
+                    if(!QFileInfo(devicePath).exists())
+                        devicePath+=" (error: doesn't actually exist)";
+                    iface.deviceNodes.emplace_back(devicePath);
+                }
+            }
+        }
+
         auto possibleInput = epPath; // for input devices without HID subsystem: e.g. some webcams
         if(possibleInput.filename().string()!="input")
             possibleInput/="input"; // for HID input devices
