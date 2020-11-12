@@ -146,6 +146,8 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
 {
     iface.activeAltSetting=false; //FIXME: where is this info located in /sys/bus/usb/devices?
 
+    iface.sysfsPath=QString::fromStdString(intPath.string());
+
     // Radices are defined in linux-4.14.157/core/sysfs.c
     iface.ifaceNum=getUInt(intPath/"bInterfaceNumber", 16);
     iface.altSettingNum=getUInt(intPath/"bAlternateSetting", 10);

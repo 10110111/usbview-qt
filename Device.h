@@ -45,6 +45,7 @@ struct Device
     };
     struct Interface
     {
+        QString sysfsPath;
         bool activeAltSetting;
         unsigned ifaceNum;
         unsigned altSettingNum;
