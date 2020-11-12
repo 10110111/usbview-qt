@@ -4,14 +4,10 @@
 #include <QFontDatabase>
 #include "Device.h"
 #include "ExtDescription.h"
+#include "common.hpp"
 
 namespace
 {
-
-enum DeviceClass
-{
-    CLASS_HID=0x03,
-};
 
 enum DescriptorType
 {
@@ -189,6 +185,13 @@ void PropertiesWidget::updateTree()
             ifacesItem->addChild(ifaceItem);
 //            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active alternate setting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("SYSFS path"), iface.sysfsPath}});
+            if(!iface.deviceNodes.empty())
+            {
+                const auto devNodesItem=new QTreeWidgetItem{QStringList{tr("Device nodes")}};
+                ifaceItem->addChild(devNodesItem);
+                for(const auto& node : iface.deviceNodes)
+                    devNodesItem->addChild(new QTreeWidgetItem{{node}});
+            }
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Alternate setting number"), QString::number(iface.altSettingNum)}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Class"), QString("0x%1 (%2)")
                                         .arg(iface.ifaceClass, 2, 16, QLatin1Char('0')).arg(iface.ifaceClassStr)}});

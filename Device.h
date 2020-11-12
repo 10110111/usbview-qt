@@ -46,6 +46,7 @@ struct Device
     struct Interface
     {
         QString sysfsPath;
+        std::vector<QString> deviceNodes;
         bool activeAltSetting;
         unsigned ifaceNum;
         unsigned altSettingNum;

@@ -11,6 +11,7 @@
 #include <QObject>
 #include <QFileInfo>
 #include "util.hpp"
+#include "common.hpp"
 
 namespace fs=std::filesystem;
 
@@ -196,6 +197,38 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
         }
         if(startsWith(filename, hidDirNamePrefix.toStdString().c_str()))
             iface.hidReportDescriptors.emplace_back(getFileData(entry.path()/"report_descriptor"));
+        if(iface.ifaceClass==CLASS_HID && exists(epPath/"hidraw"))
+        {
+            for(const auto& entry : fs::directory_iterator(epPath/"hidraw"))
+            {
+                if(startsWith(entry.path().filename().string(),"hidraw") && exists(entry.path()/"dev"))
+                {
+                    auto devicePath=QString::fromStdString(("/dev"/entry.path().filename()).string());
+                    if(!QFileInfo(devicePath).exists())
+                        devicePath+=" (error: doesn't actually exist)";
+                    iface.deviceNodes.emplace_back(devicePath);
+                }
+            }
+        }
+        if(exists(epPath/"input"))
+        {
+            for(const auto& entry : fs::directory_iterator(epPath/"input"))
+            {
+                if(startsWith(entry.path().filename().string(),"input"))
+                {
+                    for(const auto& inner : fs::directory_iterator(entry.path()))
+                    {
+                        if(exists(inner.path()/"dev"))
+                        {
+                            auto devicePath=QString::fromStdString(("/dev/input/"/inner.path().filename()).string());
+                            if(!QFileInfo(devicePath).exists())
+                                devicePath+=" (error: doesn't actually exist)";
+                            iface.deviceNodes.emplace_back(devicePath);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
