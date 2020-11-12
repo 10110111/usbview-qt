@@ -6,6 +6,11 @@
 namespace
 {
 
+enum DeviceClass
+{
+    CLASS_HID=0x03,
+};
+
 enum DescriptorType
 {
     DT_DEVICE = 1,
@@ -176,6 +181,14 @@ void PropertiesWidget::updateTree()
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Protocol"), protocolStr}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Driver"),
                                                     QString("%1").arg(iface.driver)}});
+            if(iface.ifaceClass==CLASS_HID)
+            {
+                const auto hidReportDescriptorsItem=new QTreeWidgetItem{QStringList{tr("HID report descriptors")}};
+                ifaceItem->addChild(hidReportDescriptorsItem);
+                for(const auto& desc : iface.hidReportDescriptors)
+                    hidReportDescriptorsItem->addChild(new QTreeWidgetItem{QStringList{formatBytes(desc)}});
+
+            }
             if(iface.numEPs!=0 || !iface.endpoints.empty())
             {
                 const auto endpointsItem=new QTreeWidgetItem{QStringList{

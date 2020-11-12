@@ -55,6 +55,7 @@ struct Device
         unsigned ifaceSubClass;
         unsigned protocol;
         QString driver;
+        std::vector<std::vector<uint8_t>> hidReportDescriptors;
         std::vector<Endpoint> endpoints;
     };
     struct Config

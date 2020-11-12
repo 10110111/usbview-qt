@@ -110,6 +110,18 @@ QString getString(fs::path const& filePath)
     return str;
 }
 
+std::vector<uint8_t> getFileData(fs::path const& filePath)
+{
+    char data[4097];
+    std::ifstream file(filePath);
+    if(!file)
+        throw std::invalid_argument("Failed to open file \""+filePath.string()+"\"");
+    file.read(data, sizeof data);
+    if(!file.gcount() && !file.eof())
+        throw std::invalid_argument("Failed to read file \""+filePath.string()+"\"");
+    return std::vector<uint8_t>(data, data+file.gcount());
+}
+
 QString getDevString(fs::path const& filePath)
 {
     // This one may not exist
@@ -162,14 +174,21 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
     if(fs::exists(driverLink) && fs::is_symlink(driverLink))
         iface.driver=QString::fromStdString(fs::read_symlink(driverLink).filename().string());
 
+    const auto hidDirNamePrefix=QString("%1:%2:%3.").arg(busNum, 4, 16, QChar('0'))
+                                                    .arg(vendorId, 4, 16, QChar('0'))
+                                                    .arg(productId, 4, 16, QChar('0'))
+                                                    .toUpper();
     for(const auto& entry : fs::directory_iterator(intPath))
     {
         const auto epPath=entry.path();
         const auto filename=epPath.filename().string();
-        if(!startsWith(filename, "ep_") || !matches(filename, "ep_..$"))
-            continue;
-        auto& ep=iface.endpoints.emplace_back();
-        parseEndpoint(epPath, ep);
+        if(startsWith(filename, "ep_") && matches(filename, "ep_..$"))
+        {
+            auto& ep=iface.endpoints.emplace_back();
+            parseEndpoint(epPath, ep);
+        }
+        if(startsWith(filename, hidDirNamePrefix.toStdString().c_str()))
+            iface.hidReportDescriptors.emplace_back(getFileData(entry.path()/"report_descriptor"));
     }
 }
 
