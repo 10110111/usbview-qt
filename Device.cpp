@@ -203,7 +203,7 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
         {
             for(const auto& entry : fs::directory_iterator(epPath/"hidraw"))
             {
-                if(startsWith(entry.path().filename().string(),"hidraw") && exists(entry.path()/"dev"))
+                if(startsWith(entry.path().filename().string(),"hidraw"))
                 {
                     auto devicePath=QString::fromStdString(("/dev"/entry.path().filename()).string());
                     if(!QFileInfo(devicePath).exists())
@@ -217,7 +217,7 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
         {
             for(const auto& entry : fs::directory_iterator(epPath))
             {
-                if(startsWith(entry.path().filename().string(),"video") && exists(entry.path()/"dev"))
+                if(startsWith(entry.path().filename().string(),"video"))
                 {
                     auto devicePath=QString::fromStdString(("/dev"/entry.path().filename()).string());
                     if(!QFileInfo(devicePath).exists())
