@@ -22,6 +22,11 @@ Device* getDevice(QTreeWidgetItem const*const item)
     return reinterpret_cast<Device*>(data);
 }
 
+uint64_t uniqueDeviceAddress(Device const& dev)
+{
+    return uint64_t(dev.busNum)<<48 | uint64_t(dev.devNum)<<32 | dev.vendorId<<16 | dev.productId;
+}
+
 }
 
 DeviceTreeWidget::DeviceTreeWidget(QWidget* parent)
@@ -59,6 +64,8 @@ void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
             setDevice(childItem, child->get());
             portItem->addChild(childItem);
             insertChildren(childItem, child->get());
+            if(uniqueDeviceAddress(**child)==currentSelectionUniqueAddress_)
+                childItem->setSelected(true);
         }
     }
     else
@@ -69,13 +76,22 @@ void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
             setDevice(childItem, childDev.get());
             item->addChild(childItem);
             insertChildren(childItem, childDev.get());
+            if(uniqueDeviceAddress(*childDev)==currentSelectionUniqueAddress_)
+                childItem->setSelected(true);
         }
     }
 }
 
 void DeviceTreeWidget::updateDeviceTree()
 {
-    clear();
+    {
+        // Clearing will invoke the signal, which we don't want to actually
+        // take effect now, so we simply save and restore the value.
+        const auto oldSelectionAddr=currentSelectionUniqueAddress_;
+        clear();
+        currentSelectionUniqueAddress_=oldSelectionAddr;
+    }
+
     const auto rootItem=new QTreeWidgetItem{QStringList{"Computer"}};
     addTopLevelItem(rootItem);
     for(const auto& dev : deviceTree_)
@@ -84,6 +100,8 @@ void DeviceTreeWidget::updateDeviceTree()
         setDevice(topLevelItem, dev.get());
         rootItem->addChild(topLevelItem);
         insertChildren(topLevelItem, dev.get());
+        if(uniqueDeviceAddress(*dev)==currentSelectionUniqueAddress_)
+            topLevelItem->setSelected(true);
     }
     expandAll();
 
@@ -119,14 +137,17 @@ void DeviceTreeWidget::onSelectionChanged()
     const auto selected=selectedItems();
     if(selected.isEmpty())
     {
+        currentSelectionUniqueAddress_=INVALID_UNIQUE_DEVICE_ADDRESS;
         emit devicesUnselected();
         return;
     }
     const auto device=getDevice(selected[0]);
     if(!device)
     {
+        currentSelectionUniqueAddress_=INVALID_UNIQUE_DEVICE_ADDRESS;
         emit devicesUnselected();
         return;
     }
+    currentSelectionUniqueAddress_=uniqueDeviceAddress(*device);
     emit deviceSelected(device);
 }
