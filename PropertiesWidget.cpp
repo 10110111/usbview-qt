@@ -99,6 +99,49 @@ QFont getMonospaceFont(QFont const& base)
     return font;
 }
 
+void parseHIDReportDescriptor(QTreeWidgetItem*const root, std::vector<uint8_t> const& data)
+{
+    try
+    {
+        for(unsigned i=0; i<data.size();)
+        {
+            const auto head=data[i];
+            auto str=QString("%1").arg(head, 2,16,QChar('0'));
+            if(head==0xfe)
+            {
+                // Long item
+                const unsigned dataSize=data.at(i+1);
+                const unsigned tag=data.at(i+2);
+                str+=QString(": %1 %2: ").arg(dataSize, 2,16,QChar('0')).arg(tag, 2,16,QChar('0'));
+                for(unsigned k=0; k<dataSize; ++k)
+                    str+=QString(" %1").arg(data.at(i+3+k), 2,16,QChar('0'));
+                str += " (Long)";
+
+                i += dataSize+3;
+            }
+            else
+            {
+                // Short item
+                const unsigned dataSize = (head&3)==3 ? 4 : (head&3);
+                if(dataSize>0)
+                    str+=":";
+                for(unsigned k=0; k<dataSize; ++k)
+                    str+=QString(" %1").arg(data.at(i+1+k), 2,16,QChar('0'));
+                const auto type = head>>2 & 3;
+                const QString types[]={QObject::tr("Main"), QObject::tr("Global"), QObject::tr("Local"), QObject::tr("Reserved")};
+                str += QString(" (%1)").arg(types[type]);
+
+                i += dataSize+1;
+            }
+            root->addChild(new QTreeWidgetItem{{str}});
+        }
+    }
+    catch(std::out_of_range const&)
+    {
+        root->addChild(new QTreeWidgetItem{{QObject::tr("(broken item: too few bytes)")}});
+    }
+}
+
 }
 
 PropertiesWidget::PropertiesWidget(QWidget* parent)
@@ -223,6 +266,7 @@ void PropertiesWidget::updateTree()
                     const auto descItem=new QTreeWidgetItem{QStringList{formatBytes(desc, wantWrapRawDumps_)}};
                     descItem->setFont(0, monoFont);
                     hidReportDescriptorsItem->addChild(descItem);
+                    parseHIDReportDescriptor(descItem, desc);
                 }
 
             }
