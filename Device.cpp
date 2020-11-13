@@ -151,7 +151,7 @@ bool matches(std::string const& str, std::string const& pattern)
 std::vector<QString> findDeviceNodes(const unsigned major, const unsigned minor)
 {
     std::vector<QString> nodes;
-    for(const auto& entry : fs::recursive_directory_iterator("/dev"))
+    for(const auto& entry : fs::recursive_directory_iterator("/dev", fs::directory_options::skip_permission_denied))
     {
         const auto& path=entry.path();
         if(is_symlink(path)) continue;
@@ -231,7 +231,7 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
 
         if(is_directory(epPath))
         {
-            for(const auto& entry : fs::recursive_directory_iterator(epPath))
+            for(const auto& entry : fs::recursive_directory_iterator(epPath, fs::directory_options::skip_permission_denied))
             {
                 const auto& path=entry.path();
                 if(path.filename().string()!="dev") continue;
