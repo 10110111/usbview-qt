@@ -13,6 +13,7 @@
 #include "util.hpp"
 #include "common.hpp"
 
+#include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #undef major
