@@ -268,7 +268,8 @@ void PropertiesWidget::updateTree()
                 for(const auto& desc : iface.hidReportDescriptors)
                 {
                     const auto descItem=new QTreeWidgetItem{QStringList{formatBytes(desc, wantWrapRawDumps_)}};
-                    descItem->setFont(0, monoFont);
+                    if(wantWrapRawDumps_)
+                        descItem->setFont(0, monoFont);
                     hidReportDescriptorsItem->addChild(descItem);
                     parseHIDReportDescriptor(descItem, desc);
                 }
