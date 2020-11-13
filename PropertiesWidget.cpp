@@ -1,4 +1,5 @@
 #include "PropertiesWidget.h"
+#include <stack>
 #include <iostream>
 #include <QProcess>
 #include <QFontDatabase>
@@ -99,10 +100,26 @@ QFont getMonospaceFont(QFont const& base)
     return font;
 }
 
-void parseHIDReportDescriptor(QTreeWidgetItem*const root, std::vector<uint8_t> const& data)
+void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const& data)
 {
+    enum ItemType
+    {
+        IT_MAIN,
+        IT_GLOBAL,
+        IT_LOCAL,
+        IT_RESERVED,
+    };
+    enum MainItemTag
+    {
+        MIT_INPUT         =0x8,
+        MIT_OUTPUT        =0x9,
+        MIT_COLLECTION    =0xA,
+        MIT_FEATURE       =0xB,
+        MIT_END_COLLECTION=0xC,
+    };
     try
     {
+        std::stack<QTreeWidgetItem*> prevRoots;
         for(unsigned i=0; i<data.size();)
         {
             const auto head=data[i];
@@ -117,6 +134,7 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, std::vector<uint8_t> c
                     str+=QString(" %1").arg(data.at(i+3+k), 2,16,QChar('0'));
                 str += " (Long)";
 
+                root->addChild(new QTreeWidgetItem{{str}});
                 i += dataSize+3;
             }
             else
@@ -131,9 +149,47 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, std::vector<uint8_t> c
                 const QString types[]={QObject::tr("Main"), QObject::tr("Global"), QObject::tr("Local"), QObject::tr("Reserved")};
                 str += QString(" (%1)").arg(types[type]);
 
+                auto item=new QTreeWidgetItem{{str}};
+                root->addChild(item);
+                const auto tag=head>>4;
+                switch(type)
+                {
+                case IT_MAIN:
+                {
+                    switch(tag)
+                    {
+                    case MIT_INPUT:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Input"));
+                        break;
+                    case MIT_OUTPUT:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Output"));
+                        break;
+                    case MIT_COLLECTION:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Collection"));
+                        prevRoots.push(root);
+                        root->addChild(item);
+                        root=item;
+                        break;
+                    case MIT_FEATURE:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Feature"));
+                        break;
+                    case MIT_END_COLLECTION:
+                        if(prevRoots.empty())
+                        {
+                            item->setData(1, Qt::DisplayRole, QObject::tr("*** Stray End Collection"));
+                            break;
+                        }
+                        item->setData(1, Qt::DisplayRole, QObject::tr("End Collection"));
+                        root=prevRoots.top();
+                        prevRoots.pop();
+                        break;
+                    }
+                    break;
+                }
+                }
+
                 i += dataSize+1;
             }
-            root->addChild(new QTreeWidgetItem{{str}});
         }
     }
     catch(std::out_of_range const&)
