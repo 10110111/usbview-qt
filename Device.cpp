@@ -259,6 +259,7 @@ void Device::parseInterface(std::filesystem::path const& intPath, Interface& ifa
                 iface.deviceNodes.insert(iface.deviceNodes.end(), std::make_move_iterator(nodes.begin()),
                                                                   std::make_move_iterator(nodes.end()));
             }
+            std::sort(iface.deviceNodes.begin(), iface.deviceNodes.end());
         }
     }
 }
