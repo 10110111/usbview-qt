@@ -204,10 +204,12 @@ void PropertiesWidget::updateTree()
     addTopLevelItem(new QTreeWidgetItem{QStringList{tr("Max default endpoint packet size"), QString::number(device_->maxPacketSize)}});
     const auto configsItem=new QTreeWidgetItem{QStringList{tr("Configurations")}};
     addTopLevelItem(configsItem);
+    configsItem->setExpanded(true);
     for(const auto& config : device_->configs)
     {
         const auto configItem=new QTreeWidgetItem{QStringList{tr("Configuration %1").arg(config.configNum)}};
         configsItem->addChild(configItem);
+        configItem->setExpanded(true);
         const auto attribItem=new QTreeWidgetItem{QStringList{tr("Attributes"),
                                                               QString("0x%1").arg(config.attributes, 2, 16, QLatin1Char('0'))}};
         configItem->addChild(attribItem);
@@ -222,10 +224,12 @@ void PropertiesWidget::updateTree()
                                                  QString(tr(u8"%1\u202fmA")).arg(config.maxPowerMilliAmp)}});
         const auto ifacesItem=new QTreeWidgetItem{QStringList{tr("Interfaces")}};
         configItem->addChild(ifacesItem);
+        ifacesItem->setExpanded(true);
         for(const auto& iface : config.interfaces)
         {
             const auto ifaceItem=new QTreeWidgetItem{QStringList{tr("Interface %1").arg(iface.ifaceNum)}};
             ifacesItem->addChild(ifaceItem);
+            ifaceItem->setExpanded(true);
 //            ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("Active alternate setting"), iface.activeAltSetting ? tr("yes") : tr("no")}});
             ifaceItem->addChild(new QTreeWidgetItem{QStringList{tr("SYSFS path"), iface.sysfsPath}});
             if(!iface.deviceNodes.empty())
@@ -275,10 +279,12 @@ void PropertiesWidget::updateTree()
                 const auto endpointsItem=new QTreeWidgetItem{QStringList{
                                             iface.endpoints.empty() ? tr("Endpoints (%1)").arg(iface.numEPs) : tr("Endpoints")}};
                 ifaceItem->addChild(endpointsItem);
+                endpointsItem->setExpanded(true);
                 for(const auto& ep : iface.endpoints)
                 {
                     const auto epItem=new QTreeWidgetItem{QStringList{tr("Endpoint 0x%1").arg(ep.address, 2, 16, QLatin1Char('0'))}};
                     endpointsItem->addChild(epItem);
+                    epItem->setExpanded(true);
                     epItem->addChild(new QTreeWidgetItem{QStringList{tr("Direction"),
                                                                      ep.direction=="in"  ? tr("In")   :
                                                                      ep.direction=="out" ? tr("Out")  :
@@ -342,10 +348,6 @@ void PropertiesWidget::updateTree()
     for(int i=0; i<topLevelItemCount(); ++i)
         setFirstColumnSpannedForAllSingleColumnItems(topLevelItem(i));
 
-    expandAll();
-    collapseItem(rawDescriptorsItem);
-    if(extToolOutputItem)
-        collapseItem(extToolOutputItem);
     resizeColumnToContents(0);
 }
 
