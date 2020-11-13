@@ -288,6 +288,8 @@ void Device::parseConfigs(fs::path const& devpath)
         auto& iface=config.interfaces.emplace_back();
         parseInterface(intPath, iface);
     }
+    std::sort(config.interfaces.begin(), config.interfaces.end(), [](const auto& if1, const auto& if2)
+              { return if1.ifaceNum < if2.ifaceNum; });
 }
 
 void Device::readBinaryDescriptors(std::filesystem::path const& devpath)
