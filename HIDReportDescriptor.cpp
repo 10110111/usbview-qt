@@ -119,6 +119,22 @@ uint32_t getItemDataUnsigned(const uint8_t*const data, const unsigned size)
     throw std::logic_error("getItemData() called for long item");
 }
 
+QString formatInOutFeatItem(const MainItemTag tag, const unsigned dataValue)
+{
+    return QString("%0 (%1, %2, %3%4%5%6%7%8%9)").arg(tag==MIT_INPUT ? QObject::tr("Input") :
+                                                      tag==MIT_OUTPUT? QObject::tr("Output"):
+                                                      tag==MIT_FEATURE ? QObject::tr("Feature") : "(my bug, please report)")
+                                                 .arg((dataValue&1) ? QObject::tr("Constant") : QObject::tr("Data"))
+                                                 .arg((dataValue&2) ? QObject::tr("Variable") : QObject::tr("Array"))
+                                                 .arg((dataValue&4) ? QObject::tr("Relative") : QObject::tr("Absolute"))
+                                                 .arg((dataValue&8)     ? QObject::tr(", Wrap")                 : "")
+                                                 .arg((dataValue&0x10)  ? QObject::tr(", Nonlinear")            : "")
+                                                 .arg((dataValue&0x20)  ? QObject::tr(", No Preferred State")   : "")
+                                                 .arg((dataValue&0x40)  ? QObject::tr(", Has Null State")       : "")
+                                                 .arg((dataValue&0x80)  ? QObject::tr(", Volatile")             : "")
+                                                 .arg((dataValue&0x100) ? QObject::tr(", Is Buffered Bytes")    : "");
+}
+
 }
 
 void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std::vector<uint8_t> const& data)
@@ -168,11 +184,11 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                 switch(tag)
                 {
                 case MIT_INPUT:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Input"));
+                    item->setData(1, Qt::DisplayRole, formatInOutFeatItem(static_cast<MainItemTag>(tag), dataValueU));
                     item->setData(1, Qt::FontRole, boldFont);
                     break;
                 case MIT_OUTPUT:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Output"));
+                    item->setData(1, Qt::DisplayRole, formatInOutFeatItem(static_cast<MainItemTag>(tag), dataValueU));
                     item->setData(1, Qt::FontRole, boldFont);
                     break;
                 case MIT_COLLECTION:
@@ -215,7 +231,7 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                     break;
                 }
                 case MIT_FEATURE:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Feature"));
+                    item->setData(1, Qt::DisplayRole, formatInOutFeatItem(static_cast<MainItemTag>(tag), dataValueU));
                     item->setData(1, Qt::FontRole, boldFont);
                     break;
                 case MIT_END_COLLECTION:
