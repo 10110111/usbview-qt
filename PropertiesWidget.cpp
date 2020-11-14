@@ -132,6 +132,20 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const&
         GIT_PUSH,
         GIT_POP,
     };
+    enum LocalItemTag
+    {
+        LIT_USAGE,
+        LIT_USAGE_MIN,
+        LIT_USAGE_MAX,
+        LIT_DESIG_IDX,
+        LIT_DESIG_MIN,
+        LIT_DESIG_MAX,
+        LIT_,
+        LIT_STRING_IDX,
+        LIT_STR_MIN,
+        LIT_STR_MAX,
+        LIT_DELIM,
+    };
     try
     {
         std::stack<QTreeWidgetItem*> prevRoots;
@@ -239,6 +253,42 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const&
                         item->setData(1, Qt::DisplayRole, QObject::tr("Pop"));
                         break;
                     }
+                    break;
+                case IT_LOCAL:
+                    switch(tag)
+                    {
+                    case LIT_USAGE:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage"));
+                        break;
+                    case LIT_USAGE_MIN:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum"));
+                        break;
+                    case LIT_USAGE_MAX:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum"));
+                        break;
+                    case LIT_DESIG_IDX:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Designator Index"));
+                        break;
+                    case LIT_DESIG_MIN:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Designator Minimum"));
+                        break;
+                    case LIT_DESIG_MAX:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Designator Maximum"));
+                        break;
+                    case LIT_STRING_IDX:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("String Index"));
+                        break;
+                    case LIT_STR_MIN:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("String Minimum"));
+                        break;
+                    case LIT_STR_MAX:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("String Maximum"));
+                        break;
+                    case LIT_DELIM:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Delimiter"));
+                        break;
+                    }
+                    break;
                 }
 
                 i += dataSize+1;
