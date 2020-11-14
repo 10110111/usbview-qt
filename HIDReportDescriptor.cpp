@@ -51,6 +51,16 @@ enum LocalItemTag
     LIT_STR_MAX,
     LIT_DELIM,
 };
+enum CollectionType
+{
+    COL_PHYSICAL,
+    COL_APPLICATION,
+    COL_LOGICAL,
+    COL_REPORT,
+    COL_NAMED_ARRAY,
+    COL_USAGE_SWITCH,
+    COL_USAGE_MODIFIER,
+};
 
 int32_t getItemDataSigned(const uint8_t*const data, const unsigned size)
 {
@@ -139,11 +149,44 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                     item->setData(1, Qt::FontRole, boldFont);
                     break;
                 case MIT_COLLECTION:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Collection"));
+                {
+                    QString typeStr;
+                    switch(dataValueU)
+                    {
+                    case COL_PHYSICAL:
+                        typeStr=QObject::tr("Physical");
+                        break;
+                    case COL_APPLICATION:
+                        typeStr=QObject::tr("Application");
+                        break;
+                    case COL_LOGICAL:
+                        typeStr=QObject::tr("Logical");
+                        break;
+                    case COL_REPORT:
+                        typeStr=QObject::tr("Report");
+                        break;
+                    case COL_NAMED_ARRAY:
+                        typeStr=QObject::tr("Named Array");
+                        break;
+                    case COL_USAGE_SWITCH:
+                        typeStr=QObject::tr("Usage Switch");
+                        break;
+                    case COL_USAGE_MODIFIER:
+                        typeStr=QObject::tr("Usage Modifier");
+                        break;
+                    default:
+                        if(dataValueU<0x7f)
+                            typeStr=QObject::tr("Reserved type 0x%1").arg(dataValueU, 2, 16, QChar('0'));
+                        else
+                            typeStr=QObject::tr("Vendor-defined type 0x%1").arg(dataValueU, 2, 16, QChar('0'));
+                        break;
+                    }
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Collection (%1)").arg(typeStr));
                     prevRoots.push(root);
                     root->addChild(item);
                     root=item;
                     break;
+                }
                 case MIT_FEATURE:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Feature"));
                     item->setData(1, Qt::FontRole, boldFont);
