@@ -61,6 +61,33 @@ enum CollectionType
     COL_USAGE_SWITCH,
     COL_USAGE_MODIFIER,
 };
+enum UsagePage
+{
+    UP_GENERIC_DESKTOP      = 0x01,
+    UP_SIM_CONTROLS         = 0x02,
+    UP_VR_CONTROLS          = 0x03,
+    UP_SPORT_CONTROLS       = 0x04,
+    UP_GAME_CONTROLS        = 0x05,
+    UP_GENERIC_DEV_CONTROLS = 0x06,
+    UP_KEYBOARD_KEYPAD      = 0x07,
+    UP_LED                  = 0x08,
+    UP_BUTTON               = 0x09,
+    UP_ORDINAL              = 0x0A,
+    UP_TELEPHONY_DEVICE     = 0x0B,
+    UP_CONSUMER             = 0x0C,
+    UP_DIGITIZERS           = 0x0D,
+    UP_HAPTICS              = 0x0E,
+    UP_UNICODE              = 0x10,
+    UP_EYE_HEAD_TRACKERS    = 0x12,
+    UP_AUX_DISPLAY          = 0x14,
+    UP_SENSORS              = 0x20,
+    UP_MEDICAL_INSTRUMENT   = 0x40,
+    UP_BRAILLE_DISPLAY      = 0x41,
+    UP_LIGHTING_ILLUMINATION= 0x59,
+    UP_CAMERA_CONTROL       = 0x90,
+    UP_GAMING_DEVICE        = 0x92,
+    UP_FIDO_ALLIANCE        = 0xF1D0,
+};
 
 int32_t getItemDataSigned(const uint8_t*const data, const unsigned size)
 {
@@ -207,8 +234,87 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                 switch(tag)
                 {
                 case GIT_USAGE_PAGE:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Page: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                {
+                    QString name;
+                    switch(dataValueU)
+                    {
+                    case UP_GENERIC_DESKTOP:
+                        name=QObject::tr("Generic Desktop Controls");
+                        break;
+                    case UP_SIM_CONTROLS:
+                        name=QObject::tr("Simulation Controls");
+                        break;
+                    case UP_VR_CONTROLS:
+                        name=QObject::tr("VR Controls");
+                        break;
+                    case UP_SPORT_CONTROLS:
+                        name=QObject::tr("Sport Controls");
+                        break;
+                    case UP_GAME_CONTROLS:
+                        name=QObject::tr("Game Controls");
+                        break;
+                    case UP_GENERIC_DEV_CONTROLS:
+                        name=QObject::tr("Generic Device Controls");
+                        break;
+                    case UP_KEYBOARD_KEYPAD:
+                        name=QObject::tr("Keyboard/Keypad");
+                        break;
+                    case UP_LED:
+                        name=QObject::tr("LED");
+                        break;
+                    case UP_BUTTON:
+                        name=QObject::tr("Button");
+                        break;
+                    case UP_ORDINAL:
+                        name=QObject::tr("Ordinal");
+                        break;
+                    case UP_TELEPHONY_DEVICE:
+                        name=QObject::tr("Telephony Device");
+                        break;
+                    case UP_CONSUMER:
+                        name=QObject::tr("Consumer Control");
+                        break;
+                    case UP_DIGITIZERS:
+                        name=QObject::tr("Digitizers");
+                        break;
+                    case UP_HAPTICS:
+                        name=QObject::tr("Haptics");
+                        break;
+                    case UP_UNICODE:
+                        name=QObject::tr("Unicode");
+                        break;
+                    case UP_EYE_HEAD_TRACKERS:
+                        name=QObject::tr("Eye and Head Trackers");
+                        break;
+                    case UP_AUX_DISPLAY:
+                        name=QObject::tr("Auxiliary Display");
+                        break;
+                    case UP_SENSORS:
+                        name=QObject::tr("Sensors");
+                        break;
+                    case UP_MEDICAL_INSTRUMENT:
+                        name=QObject::tr("Medical Instrument");
+                        break;
+                    case UP_BRAILLE_DISPLAY:
+                        name=QObject::tr("Braille Display");
+                        break;
+                    case UP_LIGHTING_ILLUMINATION:
+                        name=QObject::tr("Lighting and Illumination");
+                        break;
+                    case UP_CAMERA_CONTROL:
+                        name=QObject::tr("Camera Control");
+                        break;
+                    case UP_GAMING_DEVICE:
+                        name=QObject::tr("Gaming Device");
+                        break;
+                    case UP_FIDO_ALLIANCE:
+                        name=QObject::tr("FIDO Alliance");
+                        break;
+                    }
+                    item->setData(1, Qt::DisplayRole, name.isEmpty() ? QObject::tr("Usage Page: 0x%1").arg(dataValueU, 2, 16, QChar('0'))
+                                                                     : QObject::tr("Usage Page: %1").arg(name));
                     break;
+                }
                 case GIT_LOG_MIN:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Logical Minimum: %1").arg(dataValueS));
                     break;
