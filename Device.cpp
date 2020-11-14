@@ -388,6 +388,8 @@ Device::Device(fs::path const& devpath)
     }
 
     name = product.isEmpty() ? devClassStr : product;
+    if(!manufacturer.isEmpty())
+        name = manufacturer+(name.isEmpty() ? "" : " "+name);
 
     uniqueAddress=uint64_t(busNum)<<48 | uint64_t(devNum)<<32 | vendorId<<16 | productId;
 }
