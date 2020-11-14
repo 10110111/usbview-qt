@@ -52,6 +52,36 @@ enum LocalItemTag
     LIT_DELIM,
 };
 
+int32_t getItemDataSigned(const uint8_t*const data, const unsigned size)
+{
+    assert(size<=4); // This is only for Short items
+
+    switch(size)
+    {
+    case 0: return 0; // a valid case that may encode a zero value
+    case 1: return int8_t(data[0]); // sign-extend
+    case 2: return int16_t(data[1]<<8 | data[0]);
+    case 4: return uint32_t(data[3])<<24 | data[2]<<16 | data[1]<<8 | data[0]; // cast prevents UB
+    }
+
+    throw std::logic_error("getItemData() called for long item");
+}
+
+uint32_t getItemDataUnsigned(const uint8_t*const data, const unsigned size)
+{
+    assert(size<=4); // This is only for Short items
+
+    switch(size)
+    {
+    case 0: return 0; // a valid case that may encode a zero value
+    case 1: return data[0];
+    case 2: return data[1]<<8 | data[0];
+    case 4: return uint32_t(data[3])<<24 | data[2]<<16 | data[1]<<8 | data[0]; // cast prevents UB
+    }
+
+    throw std::logic_error("getItemData() called for long item");
+}
+
 }
 
 void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std::vector<uint8_t> const& data)
@@ -92,6 +122,9 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
             auto item=new QTreeWidgetItem{{str}};
             root->addChild(item);
             const auto tag=head>>4;
+            // NOTE: we've already checked above that we don't overflow data.size()
+            const auto dataValueS = getItemDataSigned(data.data()+i+1, dataSize);
+            const auto dataValueU = getItemDataUnsigned(data.data()+i+1, dataSize);
             switch(type)
             {
             case IT_MAIN:
@@ -131,34 +164,34 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                 switch(tag)
                 {
                 case GIT_USAGE_PAGE:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Page"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Page: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
                     break;
                 case GIT_LOG_MIN:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Logical Minimum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Logical Minimum: %1").arg(dataValueS));
                     break;
                 case GIT_LOG_MAX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Logical Maximum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Logical Maximum: %1").arg(dataValueS));
                     break;
                 case GIT_PHYS_MIN:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Physical Minimum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Physical Minimum: %1").arg(dataValueS));
                     break;
                 case GIT_PHYS_MAX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Physical Maximum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Physical Maximum: %1").arg(dataValueS));
                     break;
                 case GIT_UNIT_EXP:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Unit Exponent"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Unit Exponent: %1").arg(dataValueS));
                     break;
                 case GIT_UNIT:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Unit"));
                     break;
                 case GIT_REP_SIZE:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Report Size"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Report Size: %1").arg(dataValueU));
                     break;
                 case GIT_REP_ID:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Report ID"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Report ID: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
                     break;
                 case GIT_REP_COUNT:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Report Count"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Report Count: %1").arg(dataValueU));
                     break;
                 case GIT_PUSH:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Push"));
@@ -172,34 +205,34 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                 switch(tag)
                 {
                 case LIT_USAGE:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
                     break;
                 case LIT_USAGE_MIN:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
                     break;
                 case LIT_USAGE_MAX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
                     break;
                 case LIT_DESIG_IDX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Designator Index"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Designator Index: %1").arg(dataValueU));
                     break;
                 case LIT_DESIG_MIN:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Designator Minimum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Designator Minimum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
                     break;
                 case LIT_DESIG_MAX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Designator Maximum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Designator Maximum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
                     break;
                 case LIT_STRING_IDX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("String Index"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("String Index: %1").arg(dataValueU));
                     break;
                 case LIT_STR_MIN:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("String Minimum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("String Minimum: %1").arg(dataValueU));
                     break;
                 case LIT_STR_MAX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("String Maximum"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("String Maximum: %1").arg(dataValueU));
                     break;
                 case LIT_DELIM:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Delimiter"));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Delimiter: %1").arg(dataValueU));
                     break;
                 }
                 break;
