@@ -100,7 +100,7 @@ QFont getMonospaceFont(QFont const& base)
     return font;
 }
 
-void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const& data)
+void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std::vector<uint8_t> const& data)
 {
     enum ItemType
     {
@@ -146,6 +146,9 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const&
         LIT_STR_MAX,
         LIT_DELIM,
     };
+
+    auto boldFont(baseFont);
+    boldFont.setBold(true);
     try
     {
         std::stack<QTreeWidgetItem*> prevRoots;
@@ -188,9 +191,11 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const&
                     {
                     case MIT_INPUT:
                         item->setData(1, Qt::DisplayRole, QObject::tr("Input"));
+                        item->setData(1, Qt::FontRole, boldFont);
                         break;
                     case MIT_OUTPUT:
                         item->setData(1, Qt::DisplayRole, QObject::tr("Output"));
+                        item->setData(1, Qt::FontRole, boldFont);
                         break;
                     case MIT_COLLECTION:
                         item->setData(1, Qt::DisplayRole, QObject::tr("Collection"));
@@ -200,6 +205,7 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const&
                         break;
                     case MIT_FEATURE:
                         item->setData(1, Qt::DisplayRole, QObject::tr("Feature"));
+                        item->setData(1, Qt::FontRole, boldFont);
                         break;
                     case MIT_END_COLLECTION:
                         if(prevRoots.empty())
@@ -430,7 +436,7 @@ void PropertiesWidget::updateTree()
                     if(wantWrapRawDumps_)
                         descItem->setFont(0, monoFont);
                     hidReportDescriptorsItem->addChild(descItem);
-                    parseHIDReportDescriptor(descItem, desc);
+                    parseHIDReportDescriptor(descItem, font(), desc);
                 }
 
             }
