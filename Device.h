@@ -20,6 +20,9 @@ struct Device
 	unsigned productId;
     QString revision;
 
+    QString hwdbVendorName;
+    QString hwdbProductName;
+
     QString manufacturer;
     QString product;
     QString serialNum;
@@ -82,7 +85,7 @@ struct Device
     QString name;
     std::vector<std::unique_ptr<Device>> children;
 
-    explicit Device(std::filesystem::path const& devpath);
+    explicit Device(std::filesystem::path const& devpath, struct udev_hwdb* hwdb);
     bool isHub() const;
 private:
     void parseConfigs(std::filesystem::path const& devpath);

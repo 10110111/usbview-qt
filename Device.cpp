@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include "util.hpp"
 #include "common.hpp"
+#include <libudev.h>
 
 #include <sys/sysmacros.h>
 #include <sys/types.h>
@@ -172,6 +173,18 @@ std::vector<QString> findDeviceNodes(const unsigned major, const unsigned minor)
     return nodes;
 }
 
+const char* hwdb_get(udev_hwdb* hwdb, const char* modalias, const char* key)
+{
+    udev_list_entry* entry;
+
+    udev_list_entry_foreach(entry, udev_hwdb_get_properties_list_entry(hwdb, modalias, 0))
+    {
+        if(!strcmp(udev_list_entry_get_name(entry), key))
+            return udev_list_entry_get_value(entry);
+    }
+
+    return nullptr;
+}
 }
 
 void Device::parseEndpoint(fs::path const& epPath, Endpoint& ep)
@@ -319,7 +332,7 @@ void Device::readBinaryDescriptors(std::filesystem::path const& devpath)
     }
 }
 
-Device::Device(fs::path const& devpath)
+Device::Device(fs::path const& devpath, struct udev_hwdb* hwdb)
 {
 	// Force '.' as the radix point, which is used by sysfs. We don't care to restore it
 	// after parsing, since we never display any numbers that should be localized.
@@ -373,6 +386,13 @@ Device::Device(fs::path const& devpath)
     product=getDevString(devpath/"product");
     serialNum=getDevString(devpath/"serial");
 
+    const auto vendorIdStr=QString("%1").arg(vendorId, 4, 16, QChar('0')).toUpper();
+    const auto productIdStr=QString("%1").arg(productId, 4, 16, QChar('0')).toUpper();
+    if(const auto s=hwdb_get(hwdb, QString("usb:v%1*").arg(vendorIdStr).toStdString().c_str(), "ID_VENDOR_FROM_DATABASE"))
+        hwdbVendorName=s;
+    if(const auto s=hwdb_get(hwdb, QString("usb:v%1p%2").arg(vendorIdStr, productIdStr).toStdString().c_str(), "ID_PRODUCT_FROM_DATABASE"))
+        hwdbProductName=s;
+
     parseConfigs(devpath);
 
     readBinaryDescriptors(devpath);
@@ -384,7 +404,7 @@ Device::Device(fs::path const& devpath)
         const auto filename=subDevPath.filename().string();
         if(!startsWith(filename, busNumStr) || !matches(filename, busNumStr+"-[0-9]+(?:\\.[0-9]+)*$"))
             continue;
-        children.emplace_back(std::make_unique<Device>(subDevPath));
+        children.emplace_back(std::make_unique<Device>(subDevPath, hwdb));
     }
 
     name = product.isEmpty() ? devClassStr : product;

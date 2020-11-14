@@ -10,6 +10,8 @@ endif()
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 find_package(Qt5 5.9 REQUIRED Core Widgets)
+include(FindPkgConfig)
+pkg_check_modules(LIBUDEV REQUIRED libudev)
 
 add_executable(usbview-qt
     main.cpp
@@ -22,4 +24,4 @@ add_executable(usbview-qt
     HIDReportDescriptor.cpp
     )
 
-target_link_libraries(usbview-qt Qt5::Core Qt5::Widgets)
+target_link_libraries(usbview-qt Qt5::Core Qt5::Widgets ${LIBUDEV_LIBRARIES})
