@@ -407,9 +407,24 @@ Device::Device(fs::path const& devpath, struct udev_hwdb* hwdb)
         children.emplace_back(std::make_unique<Device>(subDevPath, hwdb));
     }
 
-    name = product.isEmpty() ? devClassStr : product;
-    if(!manufacturer.isEmpty())
-        name = manufacturer+(name.isEmpty() ? "" : " "+name);
+    {
+        // Make up the name
+        QString vendorName;
+        if(manufacturer=="Generic")
+            vendorName=hwdbVendorName;
+        else
+            vendorName=manufacturer;
+
+        QString productName;
+        if(!product.isEmpty())
+            productName=product;
+        else if(!hwdbProductName.isEmpty())
+            productName=hwdbProductName;
+        else
+            productName=devClassStr;
+
+        name = QString("%1 %2").arg(vendorName, productName).trimmed();
+    }
 
     uniqueAddress=uint64_t(busNum)<<48 | uint64_t(devNum)<<32 | vendorId<<16 | productId;
 }
