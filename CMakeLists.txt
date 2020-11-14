@@ -24,4 +24,4 @@ add_executable(usbview-qt
     HIDReportDescriptor.cpp
     )
 
-target_link_libraries(usbview-qt Qt5::Core Qt5::Widgets ${LIBUDEV_LIBRARIES})
+target_link_libraries(usbview-qt Qt5::Core Qt5::Widgets ${LIBUDEV_LIBRARIES} stdc++fs)
