@@ -391,3 +391,8 @@ Device::Device(fs::path const& devpath)
 
     uniqueAddress=uint64_t(busNum)<<48 | uint64_t(devNum)<<32 | vendorId<<16 | productId;
 }
+
+bool Device::isHub() const
+{
+    return devClass==CLASS_HUB;
+}

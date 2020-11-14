@@ -83,6 +83,7 @@ struct Device
     std::vector<std::unique_ptr<Device>> children;
 
     explicit Device(std::filesystem::path const& devpath);
+    bool isHub() const;
 private:
     void parseConfigs(std::filesystem::path const& devpath);
     void parseEndpoint(std::filesystem::path const& devpath, Endpoint& ep);

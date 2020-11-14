@@ -44,6 +44,8 @@ QString DeviceTreeWidget::formatName(Device const& dev) const
 
 void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
 {
+    auto boldFont(font());
+    boldFont.setBold(true);
     if(wantPortsShown_ && dev->maxChildren)
     {
         // dev is a hub, show all its ports between the hub and the children
@@ -58,6 +60,8 @@ void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
             const auto childItem=new QTreeWidgetItem{QStringList{formatName(**child)}};
             setDevice(childItem, child->get());
             portItem->addChild(childItem);
+            if(!(*child)->isHub())
+                childItem->setData(0, Qt::FontRole, boldFont);
             insertChildren(childItem, child->get());
             if((*child)->uniqueAddress==currentSelectionUniqueAddress_)
                 childItem->setSelected(true);
@@ -70,6 +74,8 @@ void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
             const auto childItem=new QTreeWidgetItem{QStringList{formatName(*childDev)}};
             setDevice(childItem, childDev.get());
             item->addChild(childItem);
+            if(!childDev->isHub())
+                childItem->setData(0, Qt::FontRole, boldFont);
             insertChildren(childItem, childDev.get());
             if(childDev->uniqueAddress==currentSelectionUniqueAddress_)
                 childItem->setSelected(true);
