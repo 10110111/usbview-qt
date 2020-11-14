@@ -117,6 +117,21 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const&
         MIT_FEATURE       =0xB,
         MIT_END_COLLECTION=0xC,
     };
+    enum GlobalItemTag
+    {
+        GIT_USAGE_PAGE,
+        GIT_LOG_MIN,
+        GIT_LOG_MAX,
+        GIT_PHYS_MIN,
+        GIT_PHYS_MAX,
+        GIT_UNIT_EXP,
+        GIT_UNIT,
+        GIT_REP_SIZE,
+        GIT_REP_ID,
+        GIT_REP_COUNT,
+        GIT_PUSH,
+        GIT_POP,
+    };
     try
     {
         std::stack<QTreeWidgetItem*> prevRoots;
@@ -155,7 +170,6 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const&
                 switch(type)
                 {
                 case IT_MAIN:
-                {
                     switch(tag)
                     {
                     case MIT_INPUT:
@@ -185,7 +199,46 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, std::vector<uint8_t> const&
                         break;
                     }
                     break;
-                }
+                case IT_GLOBAL:
+                    switch(tag)
+                    {
+                    case GIT_USAGE_PAGE:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Page"));
+                        break;
+                    case GIT_LOG_MIN:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Logical Minimum"));
+                        break;
+                    case GIT_LOG_MAX:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Logical Maximum"));
+                        break;
+                    case GIT_PHYS_MIN:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Physical Minimum"));
+                        break;
+                    case GIT_PHYS_MAX:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Physical Maximum"));
+                        break;
+                    case GIT_UNIT_EXP:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Unit Exponent"));
+                        break;
+                    case GIT_UNIT:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Unit"));
+                        break;
+                    case GIT_REP_SIZE:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Report Size"));
+                        break;
+                    case GIT_REP_ID:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Report ID"));
+                        break;
+                    case GIT_REP_COUNT:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Report Count"));
+                        break;
+                    case GIT_PUSH:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Push"));
+                        break;
+                    case GIT_POP:
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Pop"));
+                        break;
+                    }
                 }
 
                 i += dataSize+1;
