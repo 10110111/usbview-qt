@@ -19,6 +19,7 @@ add_executable(usbview-qt
 	ExtDescription.cpp
     DeviceTreeWidget.cpp
     PropertiesWidget.cpp
+    HIDReportDescriptor.cpp
     )
 
 target_link_libraries(usbview-qt Qt5::Core Qt5::Widgets)
