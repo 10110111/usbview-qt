@@ -85,7 +85,6 @@ bool isFixedPitch(QFont const& font)
 
 QFont getMonospaceFont(QFont const& base)
 {
-    if(const auto font=QFontDatabase::systemFont(QFontDatabase::FixedFont); isFixedPitch(font)) return font;
     auto font(base);
     if(isFixedPitch(font)) return font;
     font.setFamily("monospace");
