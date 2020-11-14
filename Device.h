@@ -6,8 +6,13 @@
 #include <filesystem>
 #include <QString>
 
+using UniqueDeviceAddress=uint64_t;
+static constexpr UniqueDeviceAddress INVALID_UNIQUE_DEVICE_ADDRESS=-1;
+
 struct Device
 {
+    UniqueDeviceAddress uniqueAddress; // the value that's preserved across tree refresh, but changes on replugging
+
     QString sysfsPath;
     QString devicePath;
 

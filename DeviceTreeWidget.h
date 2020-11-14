@@ -11,8 +11,7 @@ class DeviceTreeWidget : public QTreeWidget
 
     bool wantPortsShown_=false;
     bool wantVenProdIdsShown_=false;
-    static constexpr uint64_t INVALID_UNIQUE_DEVICE_ADDRESS=-1;
-    uint64_t currentSelectionUniqueAddress_=INVALID_UNIQUE_DEVICE_ADDRESS;
+    UniqueDeviceAddress currentSelectionUniqueAddress_=INVALID_UNIQUE_DEVICE_ADDRESS;
     std::vector<std::unique_ptr<Device>> deviceTree_;
 
     void insertChildren(QTreeWidgetItem* item, Device const* dev);

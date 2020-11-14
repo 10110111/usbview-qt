@@ -22,11 +22,6 @@ Device* getDevice(QTreeWidgetItem const*const item)
     return reinterpret_cast<Device*>(data);
 }
 
-uint64_t uniqueDeviceAddress(Device const& dev)
-{
-    return uint64_t(dev.busNum)<<48 | uint64_t(dev.devNum)<<32 | dev.vendorId<<16 | dev.productId;
-}
-
 }
 
 DeviceTreeWidget::DeviceTreeWidget(QWidget* parent)
@@ -64,7 +59,7 @@ void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
             setDevice(childItem, child->get());
             portItem->addChild(childItem);
             insertChildren(childItem, child->get());
-            if(uniqueDeviceAddress(**child)==currentSelectionUniqueAddress_)
+            if((*child)->uniqueAddress==currentSelectionUniqueAddress_)
                 childItem->setSelected(true);
         }
     }
@@ -76,7 +71,7 @@ void DeviceTreeWidget::insertChildren(QTreeWidgetItem* item, Device const* dev)
             setDevice(childItem, childDev.get());
             item->addChild(childItem);
             insertChildren(childItem, childDev.get());
-            if(uniqueDeviceAddress(*childDev)==currentSelectionUniqueAddress_)
+            if(childDev->uniqueAddress==currentSelectionUniqueAddress_)
                 childItem->setSelected(true);
         }
     }
@@ -100,7 +95,7 @@ void DeviceTreeWidget::updateDeviceTree()
         setDevice(topLevelItem, dev.get());
         rootItem->addChild(topLevelItem);
         insertChildren(topLevelItem, dev.get());
-        if(uniqueDeviceAddress(*dev)==currentSelectionUniqueAddress_)
+        if(dev->uniqueAddress==currentSelectionUniqueAddress_)
             topLevelItem->setSelected(true);
     }
     expandAll();
@@ -148,6 +143,6 @@ void DeviceTreeWidget::onSelectionChanged()
         emit devicesUnselected();
         return;
     }
-    currentSelectionUniqueAddress_=uniqueDeviceAddress(*device);
+    currentSelectionUniqueAddress_=device->uniqueAddress;
     emit deviceSelected(device);
 }
