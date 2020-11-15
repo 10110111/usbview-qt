@@ -334,13 +334,20 @@ Device::Device(fs::path const& devpath, struct udev_hwdb* hwdb, USBIDS const& us
         // Make up the name
         QString vendorName;
         if(manufacturer=="Generic" || manufacturer.isEmpty())
-            vendorName=hwdbVendorName;
+        {
+            if(usbidsVendorName.isEmpty())
+                vendorName=hwdbVendorName;
+            else
+                vendorName=usbidsVendorName;
+        }
         else
             vendorName=manufacturer;
 
         QString productName;
         if(!product.isEmpty())
             productName=product;
+        else if(!usbidsProductName.isEmpty())
+            productName=usbidsProductName;
         else if(!hwdbProductName.isEmpty())
             productName=hwdbProductName;
         else
