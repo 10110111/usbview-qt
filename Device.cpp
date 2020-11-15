@@ -410,7 +410,7 @@ Device::Device(fs::path const& devpath, struct udev_hwdb* hwdb)
     {
         // Make up the name
         QString vendorName;
-        if(manufacturer=="Generic")
+        if(manufacturer=="Generic" || manufacturer.isEmpty())
             vendorName=hwdbVendorName;
         else
             vendorName=manufacturer;
