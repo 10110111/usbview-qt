@@ -15,6 +15,7 @@ pkg_check_modules(LIBUDEV REQUIRED libudev)
 
 add_executable(usbview-qt
     main.cpp
+    usbids.cpp
     Device.cpp
     MainWindow.cpp
     DeviceTree.cpp

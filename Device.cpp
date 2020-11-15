@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include "util.hpp"
 #include "common.hpp"
+#include "usbids.h"
 #include <libudev.h>
 
 #include <sys/sysmacros.h>
@@ -251,7 +252,7 @@ void Device::readBinaryDescriptors(std::filesystem::path const& devpath)
     }
 }
 
-Device::Device(fs::path const& devpath, struct udev_hwdb* hwdb)
+Device::Device(fs::path const& devpath, struct udev_hwdb* hwdb, USBIDS const& usbids)
 {
 	// Force '.' as the radix point, which is used by sysfs. We don't care to restore it
 	// after parsing, since we never display any numbers that should be localized.
@@ -312,6 +313,9 @@ Device::Device(fs::path const& devpath, struct udev_hwdb* hwdb)
     if(const auto s=hwdb_get(hwdb, QString("usb:v%1p%2").arg(vendorIdStr, productIdStr).toStdString().c_str(), "ID_PRODUCT_FROM_DATABASE"))
         hwdbProductName=s;
 
+    usbidsVendorName=usbids.vendor(vendorId);
+    usbidsProductName=usbids.product(vendorId, productId);
+
     parseConfigs(devpath);
 
     readBinaryDescriptors(devpath);
@@ -323,7 +327,7 @@ Device::Device(fs::path const& devpath, struct udev_hwdb* hwdb)
         const auto filename=subDevPath.filename().string();
         if(!startsWith(filename, busNumStr) || !matches(filename, busNumStr+"-[0-9]+(?:\\.[0-9]+)*$"))
             continue;
-        children.emplace_back(std::make_unique<Device>(subDevPath, hwdb));
+        children.emplace_back(std::make_unique<Device>(subDevPath, hwdb, usbids));
     }
 
     {

@@ -132,6 +132,10 @@ void PropertiesWidget::updateTree()
         addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor name from HW DB", device_->hwdbVendorName}});
     if(!device_->hwdbProductName.isNull())
         addTopLevelItem(new QTreeWidgetItem{QStringList{"Product name from HW DB", device_->hwdbProductName}});
+    if(!device_->usbidsVendorName.isNull())
+        addTopLevelItem(new QTreeWidgetItem{QStringList{"Vendor name from usb.ids", device_->usbidsVendorName}});
+    if(!device_->usbidsProductName.isNull())
+        addTopLevelItem(new QTreeWidgetItem{QStringList{"Product name from usb.ids", device_->usbidsProductName}});
     if(!device_->serialNum.isNull())
         addTopLevelItem(new QTreeWidgetItem{QStringList{"Serial number", device_->serialNum}});
     addTopLevelItem(new QTreeWidgetItem{QStringList{"Bus", QString::number(device_->busNum)}});

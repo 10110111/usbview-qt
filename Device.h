@@ -9,6 +9,7 @@
 using UniqueDeviceAddress=uint64_t;
 static constexpr UniqueDeviceAddress INVALID_UNIQUE_DEVICE_ADDRESS=-1;
 
+class USBIDS;
 struct Device
 {
     UniqueDeviceAddress uniqueAddress; // the value that's preserved across tree refresh, but changes on replugging
@@ -22,6 +23,8 @@ struct Device
 
     QString hwdbVendorName;
     QString hwdbProductName;
+    QString usbidsVendorName;
+    QString usbidsProductName;
 
     QString manufacturer;
     QString product;
@@ -85,7 +88,7 @@ struct Device
     QString name;
     std::vector<std::unique_ptr<Device>> children;
 
-    explicit Device(std::filesystem::path const& devpath, struct udev_hwdb* hwdb);
+    explicit Device(std::filesystem::path const& devpath, struct udev_hwdb* hwdb, USBIDS const& usbids);
     bool isHub() const;
 private:
     void parseConfigs(std::filesystem::path const& devpath);
