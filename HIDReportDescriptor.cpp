@@ -1,6 +1,9 @@
 #include "HIDReportDescriptor.h"
 #include <stack>
+#include <queue>
+#include <deque>
 #include <cassert>
+#include <optional>
 #include <QFont>
 #include <QTreeWidgetItem>
 
@@ -135,14 +138,273 @@ QString formatInOutFeatItem(const MainItemTag tag, const unsigned dataValue)
                                                  .arg((dataValue&0x100) ? QObject::tr(", Is Buffered Bytes")    : "");
 }
 
+QString usagePageName(const unsigned page)
+{
+    switch(page)
+    {
+    case UP_GENERIC_DESKTOP:
+        return QObject::tr("Generic Desktop Controls");
+        break;
+    case UP_SIM_CONTROLS:
+        return QObject::tr("Simulation Controls");
+        break;
+    case UP_VR_CONTROLS:
+        return QObject::tr("VR Controls");
+        break;
+    case UP_SPORT_CONTROLS:
+        return QObject::tr("Sport Controls");
+        break;
+    case UP_GAME_CONTROLS:
+        return QObject::tr("Game Controls");
+        break;
+    case UP_GENERIC_DEV_CONTROLS:
+        return QObject::tr("Generic Device Controls");
+        break;
+    case UP_KEYBOARD_KEYPAD:
+        return QObject::tr("Keyboard/Keypad");
+        break;
+    case UP_LED:
+        return QObject::tr("LED");
+        break;
+    case UP_BUTTON:
+        return QObject::tr("Button");
+        break;
+    case UP_ORDINAL:
+        return QObject::tr("Ordinal");
+        break;
+    case UP_TELEPHONY_DEVICE:
+        return QObject::tr("Telephony Device");
+        break;
+    case UP_CONSUMER:
+        return QObject::tr("Consumer Control");
+        break;
+    case UP_DIGITIZERS:
+        return QObject::tr("Digitizers");
+        break;
+    case UP_HAPTICS:
+        return QObject::tr("Haptics");
+        break;
+    case UP_UNICODE:
+        return QObject::tr("Unicode");
+        break;
+    case UP_EYE_HEAD_TRACKERS:
+        return QObject::tr("Eye and Head Trackers");
+        break;
+    case UP_AUX_DISPLAY:
+        return QObject::tr("Auxiliary Display");
+        break;
+    case UP_SENSORS:
+        return QObject::tr("Sensors");
+        break;
+    case UP_MEDICAL_INSTRUMENT:
+        return QObject::tr("Medical Instrument");
+        break;
+    case UP_BRAILLE_DISPLAY:
+        return QObject::tr("Braille Display");
+        break;
+    case UP_LIGHTING_ILLUMINATION:
+        return QObject::tr("Lighting and Illumination");
+        break;
+    case UP_CAMERA_CONTROL:
+        return QObject::tr("Camera Control");
+        break;
+    case UP_GAMING_DEVICE:
+        return QObject::tr("Gaming Device");
+        break;
+    case UP_FIDO_ALLIANCE:
+        return QObject::tr("FIDO Alliance");
+        break;
+    }
+    return {};
 }
 
-void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std::vector<uint8_t> const& data)
+struct DescriptionState
+{
+    // Main items
+    int collectionNestingLevel=0;
+
+    struct GlobalItems
+    {
+        std::optional<unsigned> usagePage;
+        std::optional<int> logicalMin;
+        std::optional<int> logicalMax;
+        std::optional<int> physicalMin;
+        std::optional<int> physicalMax;
+        std::optional<int> unitExp;
+        std::optional<unsigned> unit;
+        std::optional<unsigned> reportSize;
+        std::optional<uint8_t> reportId;
+        std::optional<unsigned> reportCount;
+    } global;
+
+    struct LocalItems
+    {
+        std::deque<unsigned> usages;
+        std::optional<unsigned> usageMin;
+        std::optional<unsigned> usageMax;
+        std::optional<unsigned> designatorIndex;
+        std::optional<unsigned> designatorMin;
+        std::optional<unsigned> designatorMax;
+        std::optional<unsigned> stringIndex;
+        std::optional<unsigned> stringMin;
+        std::optional<unsigned> stringMax;
+        bool delimiterOpened=false;
+
+        void clear() { *this = {}; }
+    } local;
+
+    void closeCollection()
+    {
+        local.clear();
+    }
+};
+struct ReportElement
+{
+    unsigned bitSize;
+    uint32_t usagePage;
+    std::vector<uint32_t> usages; // discrete usages for array element; single usage for variable
+	std::optional<uint32_t> usageMin, usageMax; // these are used only for array elements
+    unsigned multiplicity=1; // if the element is an array, this is its number of elements
+    bool isArray=false;
+};
+struct ReportStructure
+{
+    std::optional<uint8_t> reportId;
+    std::vector<ReportElement> elements;
+    void addItem(DescriptionState& state, const unsigned itemData)
+    {
+        reportId=state.global.reportId;
+        if(!state.local.usageMax != !state.local.usageMin)
+            throw std::invalid_argument("Usage min & max must be either both present, or both not present");
+        const bool isArray=!(itemData&2);
+        if(isArray)
+        {
+            ReportElement elem;
+            elem.bitSize=state.global.reportSize.value();
+            elem.usagePage=state.global.usagePage.value();
+            elem.isArray=true;
+            elem.multiplicity=state.global.reportCount.value();
+            elem.usages.resize(state.local.usages.size());
+            std::copy(state.local.usages.begin(), state.local.usages.end(), elem.usages.begin());
+            elem.usageMin=state.local.usageMin;
+            elem.usageMax=state.local.usageMax;
+            elements.emplace_back(std::move(elem));
+        }
+        else
+        {
+            for(unsigned k=0; k<state.global.reportCount.value(); ++k)
+            {
+                ReportElement elem;
+                elem.bitSize=state.global.reportSize.value();
+                elem.usagePage=state.global.usagePage.value();
+                if(state.local.usageMin)
+                {
+                    if(!state.local.usages.empty())
+                    {
+                        elem.usages={state.local.usages.front()};
+                        state.local.usages.pop_front();
+                    }
+                    else if(*state.local.usageMin+k <= *state.local.usageMax)
+                        elem.usages = {*state.local.usageMin+k};
+                    else
+                    {
+                        // padding
+                        elem.usages={};
+                        elem.multiplicity = state.global.reportCount.value() - k;
+                        elements.emplace_back(std::move(elem));
+                        break;
+                    }
+                }
+                else
+                {
+                    if(!state.local.usages.empty())
+                    {
+                        elem.usages={state.local.usages.front()};
+                        if(state.local.usages.size() > 1) // otherwise the last usage applies to next elements too
+                            state.local.usages.pop_front();
+                    }
+                    else
+                    {
+                        // padding
+                        elem.usages={};
+                        elem.multiplicity = state.global.reportCount.value() - k;
+                        elements.emplace_back(std::move(elem));
+                        break;
+                    }
+                }
+                elements.emplace_back(std::move(elem));
+            }
+        }
+        state.local.clear();
+    }
+};
+
+void check(const bool correct)
+{
+    if(!correct) throw std::invalid_argument("HID report check failed");
+}
+
+void addReportsTreeItem(QTreeWidgetItem*const root, std::vector<ReportStructure> const& reports, QString const& label)
+{
+    const auto reportsItem=new QTreeWidgetItem{{label}};
+    root->addChild(reportsItem);
+    for(const auto& report : reports)
+    {
+        const auto repItem=new QTreeWidgetItem{{report.reportId ? QString("0x%1").arg(*report.reportId, 2,16,QChar('0'))
+                                                                : QObject::tr("Without Report ID")}};
+        reportsItem->addChild(repItem);
+        if(report.reportId)
+            repItem->addChild(new QTreeWidgetItem{{QObject::tr("Report ID: 0x%1").arg(*report.reportId, 2,16,QChar('0'))}});
+        for(const auto elem : report.elements)
+        {
+            const auto usagePageName=::usagePageName(elem.usagePage);
+            if(!elem.usages.empty() || elem.usageMin)
+            {
+                if(elem.isArray)
+                {
+                    QString possibleUsages;
+                    for(const auto usage : elem.usages)
+                        possibleUsages += QString("0x%1, ").arg(usage, 2,16,QChar('0'));
+                    if(elem.usageMin)
+                        possibleUsages += QString("0x%1 — 0x%2").arg(*elem.usageMin, 2,16,QChar('0')).arg(*elem.usageMax, 2,16,QChar('0'));
+                    if(possibleUsages.endsWith(", "))
+                        possibleUsages.chop(2);
+                    repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-element array of %2-bit items, usage page: %3, possible usages: %4")
+                                                          .arg(elem.multiplicity)
+                                                          .arg(elem.bitSize)
+                                                          .arg(usagePageName.isEmpty() ? QString("0x%1").arg(elem.usagePage, 2,16,QChar('0')) : usagePageName)
+                                                          .arg(possibleUsages)}});
+                }
+                else
+                {
+                    repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-bit data, usage page: %2, usage: %3")
+                                                          .arg(elem.bitSize)
+                                                          .arg(usagePageName.isEmpty() ? QString("0x%1").arg(elem.usagePage, 2,16,QChar('0')) : usagePageName)
+                                                          .arg(QString("0x%1").arg(elem.usages[0], 2,16,QChar('0')))}});
+                }
+            }
+            else
+            {
+                repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-bit padding").arg(elem.bitSize*elem.multiplicity)}});
+            }
+        }
+    }
+}
+
+}
+
+void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont, std::vector<uint8_t> const& data)
 {
     auto boldFont(baseFont);
     boldFont.setBold(true);
+
+    auto descriptorDetailsItem=new QTreeWidgetItem{{QObject::tr("Detailed view")}};
+    root->addChild(descriptorDetailsItem);
+    std::vector<ReportStructure> reportsIn, reportsOut, reportsFeat;
     try
     {
+        std::stack<DescriptionState> dscStates;
+        dscStates.push({});
         std::stack<QTreeWidgetItem*> prevRoots;
         for(unsigned i=0; i<data.size();)
         {
@@ -158,7 +420,7 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                     str+=QString(" %1").arg(data.at(i+3+k), 2,16,QChar('0'));
                 str += " (Long)";
 
-                root->addChild(new QTreeWidgetItem{{str}});
+                descriptorDetailsItem->addChild(new QTreeWidgetItem{{str}});
                 i += dataSize+3;
                 continue;
             }
@@ -173,7 +435,7 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
             str += QString(" (%1)").arg(types[type]);
 
             auto item=new QTreeWidgetItem{{str}};
-            root->addChild(item);
+            descriptorDetailsItem->addChild(item);
             const auto tag=head>>4;
             // NOTE: we've already checked above that we don't overflow data.size()
             const auto dataValueS = getItemDataSigned(data.data()+i+1, dataSize);
@@ -184,13 +446,20 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                 switch(tag)
                 {
                 case MIT_INPUT:
-                    item->setData(1, Qt::DisplayRole, formatInOutFeatItem(static_cast<MainItemTag>(tag), dataValueU));
-                    item->setData(1, Qt::FontRole, boldFont);
-                    break;
                 case MIT_OUTPUT:
+                case MIT_FEATURE:
+                {
                     item->setData(1, Qt::DisplayRole, formatInOutFeatItem(static_cast<MainItemTag>(tag), dataValueU));
                     item->setData(1, Qt::FontRole, boldFont);
+                    auto& reports = tag==MIT_INPUT ? reportsIn
+                                  : tag==MIT_OUTPUT ? reportsOut
+                                  :                   reportsFeat;
+                    if(reports.empty() || (!reports.back().elements.empty() && reports.back().reportId!=dscStates.top().global.reportId))
+                        reports.push_back({});
+                    reports.back().addItem(dscStates.top(), dataValueU);
+                    dscStates.top().local.clear();
                     break;
+                }
                 case MIT_COLLECTION:
                 {
                     QString typeStr;
@@ -225,15 +494,12 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                         break;
                     }
                     item->setData(1, Qt::DisplayRole, QObject::tr("Collection (%1)").arg(typeStr));
-                    prevRoots.push(root);
-                    root->addChild(item);
-                    root=item;
+                    prevRoots.push(descriptorDetailsItem);
+                    descriptorDetailsItem->addChild(item);
+                    descriptorDetailsItem=item;
+                    dscStates.top().local.clear();
                     break;
                 }
-                case MIT_FEATURE:
-                    item->setData(1, Qt::DisplayRole, formatInOutFeatItem(static_cast<MainItemTag>(tag), dataValueU));
-                    item->setData(1, Qt::FontRole, boldFont);
-                    break;
                 case MIT_END_COLLECTION:
                     if(prevRoots.empty())
                     {
@@ -241,8 +507,10 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                         break;
                     }
                     item->setData(1, Qt::DisplayRole, QObject::tr("End Collection"));
-                    root=prevRoots.top();
+                    descriptorDetailsItem=prevRoots.top();
                     prevRoots.pop();
+
+                    dscStates.top().closeCollection();
                     break;
                 }
                 break;
@@ -251,118 +519,57 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                 {
                 case GIT_USAGE_PAGE:
                 {
-                    QString name;
-                    switch(dataValueU)
-                    {
-                    case UP_GENERIC_DESKTOP:
-                        name=QObject::tr("Generic Desktop Controls");
-                        break;
-                    case UP_SIM_CONTROLS:
-                        name=QObject::tr("Simulation Controls");
-                        break;
-                    case UP_VR_CONTROLS:
-                        name=QObject::tr("VR Controls");
-                        break;
-                    case UP_SPORT_CONTROLS:
-                        name=QObject::tr("Sport Controls");
-                        break;
-                    case UP_GAME_CONTROLS:
-                        name=QObject::tr("Game Controls");
-                        break;
-                    case UP_GENERIC_DEV_CONTROLS:
-                        name=QObject::tr("Generic Device Controls");
-                        break;
-                    case UP_KEYBOARD_KEYPAD:
-                        name=QObject::tr("Keyboard/Keypad");
-                        break;
-                    case UP_LED:
-                        name=QObject::tr("LED");
-                        break;
-                    case UP_BUTTON:
-                        name=QObject::tr("Button");
-                        break;
-                    case UP_ORDINAL:
-                        name=QObject::tr("Ordinal");
-                        break;
-                    case UP_TELEPHONY_DEVICE:
-                        name=QObject::tr("Telephony Device");
-                        break;
-                    case UP_CONSUMER:
-                        name=QObject::tr("Consumer Control");
-                        break;
-                    case UP_DIGITIZERS:
-                        name=QObject::tr("Digitizers");
-                        break;
-                    case UP_HAPTICS:
-                        name=QObject::tr("Haptics");
-                        break;
-                    case UP_UNICODE:
-                        name=QObject::tr("Unicode");
-                        break;
-                    case UP_EYE_HEAD_TRACKERS:
-                        name=QObject::tr("Eye and Head Trackers");
-                        break;
-                    case UP_AUX_DISPLAY:
-                        name=QObject::tr("Auxiliary Display");
-                        break;
-                    case UP_SENSORS:
-                        name=QObject::tr("Sensors");
-                        break;
-                    case UP_MEDICAL_INSTRUMENT:
-                        name=QObject::tr("Medical Instrument");
-                        break;
-                    case UP_BRAILLE_DISPLAY:
-                        name=QObject::tr("Braille Display");
-                        break;
-                    case UP_LIGHTING_ILLUMINATION:
-                        name=QObject::tr("Lighting and Illumination");
-                        break;
-                    case UP_CAMERA_CONTROL:
-                        name=QObject::tr("Camera Control");
-                        break;
-                    case UP_GAMING_DEVICE:
-                        name=QObject::tr("Gaming Device");
-                        break;
-                    case UP_FIDO_ALLIANCE:
-                        name=QObject::tr("FIDO Alliance");
-                        break;
-                    }
+                    const auto name=usagePageName(dataValueU);
                     item->setData(1, Qt::DisplayRole, name.isEmpty() ? QObject::tr("Usage Page: 0x%1").arg(dataValueU, 2, 16, QChar('0'))
                                                                      : QObject::tr("Usage Page: %1").arg(name));
+                    dscStates.top().global.usagePage=dataValueU;
                     break;
                 }
                 case GIT_LOG_MIN:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Logical Minimum: %1").arg(dataValueS));
+                    dscStates.top().global.logicalMin=dataValueS;
                     break;
                 case GIT_LOG_MAX:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Logical Maximum: %1").arg(dataValueS));
+                    dscStates.top().global.logicalMax=dataValueS;
                     break;
                 case GIT_PHYS_MIN:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Physical Minimum: %1").arg(dataValueS));
+                    dscStates.top().global.physicalMin=dataValueS;
                     break;
                 case GIT_PHYS_MAX:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Physical Maximum: %1").arg(dataValueS));
+                    dscStates.top().global.physicalMax=dataValueS;
                     break;
                 case GIT_UNIT_EXP:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Unit Exponent: %1").arg(dataValueS));
+                    dscStates.top().global.unitExp=dataValueS;
                     break;
                 case GIT_UNIT:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Unit"));
+                    dscStates.top().global.unit=dataValueU;
                     break;
                 case GIT_REP_SIZE:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Report Size: %1").arg(dataValueU));
+                    dscStates.top().global.reportSize=dataValueU;
                     break;
                 case GIT_REP_ID:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Report ID: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    check(dataValueU<256);
+                    dscStates.top().global.reportId=dataValueU;
                     break;
                 case GIT_REP_COUNT:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Report Count: %1").arg(dataValueU));
+                    dscStates.top().global.reportCount=dataValueU;
                     break;
                 case GIT_PUSH:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Push"));
+                    dscStates.push(dscStates.top());
                     break;
                 case GIT_POP:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Pop"));
+                    check(dscStates.size()>1);
+                    dscStates.pop();
                     break;
                 }
                 break;
@@ -371,30 +578,39 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
                 {
                 case LIT_USAGE:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Usage: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    dscStates.top().local.usages.push_back(dataValueU);
                     break;
                 case LIT_USAGE_MIN:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    dscStates.top().local.usageMin=dataValueU;
                     break;
                 case LIT_USAGE_MAX:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    dscStates.top().local.usageMax=dataValueU;
                     break;
                 case LIT_DESIG_IDX:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Designator Index: %1").arg(dataValueU));
+                    dscStates.top().local.designatorIndex=dataValueU;
                     break;
                 case LIT_DESIG_MIN:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Designator Minimum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    dscStates.top().local.designatorMin=dataValueU;
                     break;
                 case LIT_DESIG_MAX:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Designator Maximum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    dscStates.top().local.designatorMax=dataValueU;
                     break;
                 case LIT_STRING_IDX:
                     item->setData(1, Qt::DisplayRole, QObject::tr("String Index: %1").arg(dataValueU));
+                    dscStates.top().local.stringIndex=dataValueU;
                     break;
                 case LIT_STR_MIN:
                     item->setData(1, Qt::DisplayRole, QObject::tr("String Minimum: %1").arg(dataValueU));
+                    dscStates.top().local.stringMin=dataValueU;
                     break;
                 case LIT_STR_MAX:
                     item->setData(1, Qt::DisplayRole, QObject::tr("String Maximum: %1").arg(dataValueU));
+                    dscStates.top().local.stringMax=dataValueU;
                     break;
                 case LIT_DELIM:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Delimiter: %1").arg(dataValueU));
@@ -405,9 +621,22 @@ void parseHIDReportDescriptor(QTreeWidgetItem* root, QFont const& baseFont, std:
 
             i += dataSize+1;
         }
+
+        const auto reportsItem=new QTreeWidgetItem{{QObject::tr("Supported reports")}};
+        root->addChild(reportsItem);
+        if(!reportsIn.empty())
+            addReportsTreeItem(reportsItem,reportsIn,QObject::tr("Input reports"));
+        if(!reportsOut.empty())
+            addReportsTreeItem(reportsItem,reportsOut,QObject::tr("Output reports"));
+        if(!reportsFeat.empty())
+            addReportsTreeItem(reportsItem,reportsFeat,QObject::tr("Feature reports"));
     }
     catch(std::out_of_range const&)
     {
-        root->addChild(new QTreeWidgetItem{{QObject::tr("(broken item: too few bytes)")}});
+        descriptorDetailsItem->addChild(new QTreeWidgetItem{{QObject::tr("(broken item: too few bytes)")}});
+    }
+    catch(std::bad_optional_access const&)
+    {
+        descriptorDetailsItem->addChild(new QTreeWidgetItem{{QObject::tr("(broken item: some fields missing)")}});
     }
 }
