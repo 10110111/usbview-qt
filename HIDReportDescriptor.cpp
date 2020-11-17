@@ -92,6 +92,100 @@ enum UsagePage
     UP_FIDO_ALLIANCE        = 0xF1D0,
 };
 
+const std::unordered_map<uint16_t, QString> genericDesktopPage={
+    {0x0000, "Undefined"},
+    {0x0001, "Pointer"},
+    {0x0002, "Mouse"},
+// 3 Reserved
+    {0x0004, "Joystick"},
+    {0x0005, "Gamepad"},
+    {0x0006, "Keyboard"},
+    {0x0007, "Keypad"},
+    {0x0008, "Multi-axis Controller"},
+    {0x0009, "Tablet PC System Controls"},
+    {0x000a, "Water Cooling Device"},
+    {0x000b, "Computer Chassis Device"},
+    {0x000c, "Wireless Radio Controls"},
+    {0x000d, "Portable Device Control"},
+    {0x000e, "System Multi-Axis Controller"},
+    {0x000f, "Spatial Controller"},
+    {0x0010, "Assistive Control"},
+    {0x0011, "Device Dock"},
+    {0x0012, "Dockable Device"},
+// 13-2f Reserved
+    {0x0030, "X"},
+    {0x0031, "Y"},
+    {0x0032, "Z"},
+    {0x0033, "Rx"},
+    {0x0034, "Ry"},
+    {0x0035, "Rz"},
+    {0x0036, "Slider"},
+    {0x0037, "Dial"},
+    {0x0038, "Wheel"},
+    {0x0039, "Hat Switch"},
+    {0x003a, "Counted Buffer"},
+    {0x003b, "Byte Count"},
+    {0x003c, "Motion Wakeup"},
+    {0x003d, "Start"},
+    {0x003e, "Select"},
+// 3f reserved
+    {0x0040, "Vx"},
+    {0x0041, "Vy"},
+    {0x0042, "Vz"},
+    {0x0043, "Vbrx"},
+    {0x0044, "Vbry"},
+    {0x0045, "Vbrz"},
+    {0x0046, "Vno"},
+    {0x0047, "Feature Notification"},
+    {0x0048, "Resolution Multiplier"},
+    {0x0049, "Qx"},
+    {0x004a, "Qy"},
+    {0x004b, "Qz"},
+    {0x004c, "Qw"},
+// 4d-7f Reserved
+    {0x0080, "System Control"},
+    {0x0081, "System Power Down"},
+    {0x0082, "System Sleep"},
+    {0x0083, "System Wake Up"},
+// TODO: complete
+};
+
+const std::unordered_map<uint16_t, QString> ledPage={
+    {0x0000, "Undefined"},
+    {0x0001, "Num Lock"},
+    {0x0002, "Caps Lock"},
+    {0x0003, "Scroll Lock"},
+    {0x0004, "Compose"},
+    {0x0005, "Kana"},
+    {0x0006, "Power"},
+    {0x0007, "Shift"},
+// TODO: complete
+};
+
+QString usageName(const uint16_t page, const uint16_t usage, const bool includeHex=false)
+{
+    const std::unordered_map<uint16_t, QString>* pageMap=nullptr;
+    switch(page)
+    {
+    case 0x01:
+        pageMap=&genericDesktopPage;
+        break;
+    case 0x08:
+        pageMap=&ledPage;
+        break;
+    default:
+        return QString("0x%1").arg(usage, 2,16,QChar('0'));
+    }
+
+    if(const auto it=pageMap->find(usage); it!=pageMap->end())
+    {
+        if(includeHex)
+            return QString("%1 (0x%2)").arg(it->second).arg(usage, 2,16,QChar('0'));
+        return it->second;
+    }
+    return QString("0x%1").arg(usage, 2,16,QChar('0'));
+}
+
 int32_t getItemDataSigned(const uint8_t*const data, const unsigned size)
 {
     assert(size<=4); // This is only for Short items
@@ -364,9 +458,10 @@ void addReportsTreeItem(QTreeWidgetItem*const root, std::vector<ReportStructure>
                 {
                     QString possibleUsages;
                     for(const auto usage : elem.usages)
-                        possibleUsages += QString("0x%1, ").arg(usage, 2,16,QChar('0'));
+                        possibleUsages += QString("%1, ").arg(usageName(elem.usagePage, usage));
                     if(elem.usageMin)
-                        possibleUsages += QString("0x%1 — 0x%2").arg(*elem.usageMin, 2,16,QChar('0')).arg(*elem.usageMax, 2,16,QChar('0'));
+                        possibleUsages += QString("%1 — %2").arg(usageName(elem.usagePage,*elem.usageMin,true))
+                                                            .arg(usageName(elem.usagePage,*elem.usageMax,true));
                     if(possibleUsages.endsWith(", "))
                         possibleUsages.chop(2);
                     repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-element array of %2-bit items, usage page: %3, possible usages: %4")
@@ -380,7 +475,7 @@ void addReportsTreeItem(QTreeWidgetItem*const root, std::vector<ReportStructure>
                     repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-bit data, usage page: %2, usage: %3")
                                                           .arg(elem.bitSize)
                                                           .arg(usagePageName.isEmpty() ? QString("0x%1").arg(elem.usagePage, 2,16,QChar('0')) : usagePageName)
-                                                          .arg(QString("0x%1").arg(elem.usages[0], 2,16,QChar('0')))}});
+                                                          .arg(usageName(elem.usagePage, elem.usages[0]))}});
                 }
             }
             else
@@ -577,16 +672,19 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont,
                 switch(tag)
                 {
                 case LIT_USAGE:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage: %1")
+                                                            .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU)));
                     check(dataValueU<=0xffff);
                     dscStates.top().local.usages.push_back(dataValueU);
                     break;
                 case LIT_USAGE_MIN:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: %1")
+                                                            .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU, true)));
                     dscStates.top().local.usageMin=dataValueU;
                     break;
                 case LIT_USAGE_MAX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: %1")
+                                                            .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU, true)));
                     dscStates.top().local.usageMax=dataValueU;
                     break;
                 case LIT_DESIG_IDX:
