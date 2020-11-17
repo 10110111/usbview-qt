@@ -675,7 +675,6 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont,
                     if(dataSize>=3)
                     {
                         const uint16_t page = dataValueU>>16;
-                        dscStates.top().global.usagePage=page;
                         item->setData(1, Qt::DisplayRole, QObject::tr("Usage Page: %1, usage ID: %2").arg(usagePageName(page))
                                                                                                      .arg(usageName(page, dataValueU)));
                     }
@@ -690,7 +689,6 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont,
                     if(dataSize>=3)
                     {
                         const uint16_t page = dataValueU>>16;
-                        dscStates.top().global.usagePage=page;
                         item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: page: %1, ID: %2").arg(usagePageName(page))
                                                                                                         .arg(usageName(page, dataValueU, true)));
                     }
@@ -705,7 +703,6 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont,
                     if(dataSize>=3)
                     {
                         const uint16_t page = dataValueU>>16;
-                        dscStates.top().global.usagePage=page;
                         item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: page: %1, ID: %2").arg(usagePageName(page))
                                                                                                         .arg(usageName(page, dataValueU, true)));
                     }
