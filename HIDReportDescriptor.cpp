@@ -277,7 +277,10 @@ QString usageName(const uint32_t usage, const IncludeHex includeHex=IncludeHex{f
     if(showPage)
     {
         if(const auto pageName=usagePageName(page, false); !pageName.isEmpty())
-            return QString("%1 {id=0x%2}").arg(pageName).arg(usage&0xffff, 2,16,QChar('0'));
+        {
+            const auto hex = includeHex ?  QString(" (ext. usage 0x%1)").arg(usage, 6,16,QChar('0')) : "";
+            return QString("%1 {id=0x%2}%3").arg(pageName).arg(usage&0xffff, 2,16,QChar('0')).arg(hex);
+        }
         return QString("0x%1").arg(usage, 2,16,QChar('0'));
     }
 
@@ -471,8 +474,30 @@ void addReportsTreeItem(QTreeWidgetItem*const root, std::vector<ReportStructure>
                 if(elem.isArray)
                 {
                     QString possibleUsages;
+                    int32_t prevPage=-1;
+                    bool needClosingBrace=false;
                     for(const auto usage : elem.usages)
-                        possibleUsages += QString("%1, ").arg(usageName(usage));
+                    {
+                        const int32_t currPage = usage>>16;
+                        if(prevPage != currPage)
+                        {
+                            if(needClosingBrace)
+                            {
+                                possibleUsages.chop(2); // ", "
+                                possibleUsages  += "}, ";
+                            }
+                            possibleUsages += QString("%1 {").arg(usagePageName(currPage));
+                            needClosingBrace=true;
+                            prevPage = currPage;
+                        }
+                        possibleUsages += QString("%1, ").arg(usageName(usage, IncludeHex{false}, ShowPage{false}));
+                    }
+                    if(needClosingBrace)
+                    {
+                        possibleUsages.chop(2); // ", "
+                        possibleUsages += "}, ";
+                    }
+
                     if(elem.usageMin)
                         possibleUsages += QString("%1 — %2").arg(usageName(*elem.usageMin,IncludeHex{}))
                                                             .arg(usageName(*elem.usageMax,IncludeHex{}));
