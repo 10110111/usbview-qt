@@ -73,12 +73,6 @@ MainWindow::MainWindow()
     splitter_->setStretchFactor(0,0);
     setCentralWidget(splitter_);
 
-    QObject::connect(treeWidget_, &DeviceTreeWidget::deviceSelected, propsWidget_, &PropertiesWidget::showDevice);
-    QObject::connect(treeWidget_, &DeviceTreeWidget::devicesUnselected, propsWidget_, &PropertiesWidget::clear);
-    connect(treeWidget_, &DeviceTreeWidget::treeUpdated, this, &MainWindow::onTreeUpdated);
-
-    createMenuBar();
-
     const auto screenAvailableSize = qApp->primaryScreen()->availableSize();
     treeWidget_->ensurePolished();
     const QFontMetrics fm(treeWidget_->font());
@@ -86,4 +80,10 @@ MainWindow::MainWindow()
     const auto fontWidth=fm.averageCharWidth();
     resize(std::min(screenAvailableSize.width(), fontWidth*120),
            std::min(screenAvailableSize.height(), fontHeight*50));
+
+    QObject::connect(treeWidget_, &DeviceTreeWidget::deviceSelected, propsWidget_, &PropertiesWidget::showDevice);
+    QObject::connect(treeWidget_, &DeviceTreeWidget::devicesUnselected, propsWidget_, &PropertiesWidget::clear);
+    connect(treeWidget_, &DeviceTreeWidget::treeUpdated, this, &MainWindow::onTreeUpdated);
+
+    createMenuBar();
 }
