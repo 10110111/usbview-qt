@@ -78,7 +78,7 @@ MainWindow::MainWindow()
     const QFontMetrics fm(treeWidget_->font());
     const auto fontHeight=fm.height();
     const auto fontWidth=fm.averageCharWidth();
-    resize(std::min(screenAvailableSize.width(), fontWidth*120),
+    resize(std::min(screenAvailableSize.width(), fontWidth*150),
            std::min(screenAvailableSize.height(), fontHeight*50));
 
     QObject::connect(treeWidget_, &DeviceTreeWidget::deviceSelected, propsWidget_, &PropertiesWidget::showDevice);
