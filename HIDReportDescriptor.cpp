@@ -225,7 +225,7 @@ struct DescriptionState
 
     struct GlobalItems
     {
-        std::optional<unsigned> usagePage;
+        std::optional<uint16_t> usagePage;
         std::optional<int> logicalMin;
         std::optional<int> logicalMax;
         std::optional<int> physicalMin;
@@ -239,9 +239,9 @@ struct DescriptionState
 
     struct LocalItems
     {
-        std::deque<unsigned> usages;
-        std::optional<unsigned> usageMin;
-        std::optional<unsigned> usageMax;
+        std::deque<uint16_t> usages;
+        std::optional<uint16_t> usageMin;
+        std::optional<uint16_t> usageMax;
         std::optional<unsigned> designatorIndex;
         std::optional<unsigned> designatorMin;
         std::optional<unsigned> designatorMax;
@@ -261,9 +261,9 @@ struct DescriptionState
 struct ReportElement
 {
     unsigned bitSize;
-    uint32_t usagePage;
-    std::vector<uint32_t> usages; // discrete usages for array element; single usage for variable
-	std::optional<uint32_t> usageMin, usageMax; // these are used only for array elements
+    uint16_t usagePage;
+    std::vector<uint16_t> usages; // discrete usages for array element; single usage for variable
+	std::optional<uint16_t> usageMin, usageMax; // these are used only for array elements
     unsigned multiplicity=1; // if the element is an array, this is its number of elements
     bool isArray=false;
 };
@@ -305,7 +305,7 @@ struct ReportStructure
                         state.local.usages.pop_front();
                     }
                     else if(*state.local.usageMin+k <= *state.local.usageMax)
-                        elem.usages = {*state.local.usageMin+k};
+                        elem.usages = {uint16_t(*state.local.usageMin+k)};
                     else
                     {
                         // padding
@@ -578,6 +578,7 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont,
                 {
                 case LIT_USAGE:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Usage: 0x%1").arg(dataValueU, 2, 16, QChar('0')));
+                    check(dataValueU<=0xffff);
                     dscStates.top().local.usages.push_back(dataValueU);
                     break;
                 case LIT_USAGE_MIN:
