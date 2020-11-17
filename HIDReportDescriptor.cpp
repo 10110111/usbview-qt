@@ -6,6 +6,7 @@
 #include <optional>
 #include <QFont>
 #include <QTreeWidgetItem>
+#include "util.hpp"
 
 namespace
 {
@@ -162,77 +163,7 @@ const std::unordered_map<uint16_t, QString> ledPage={
 // TODO: complete
 };
 
-QString usageName(const uint16_t page, const uint16_t usage, const bool includeHex=false)
-{
-    const std::unordered_map<uint16_t, QString>* pageMap=nullptr;
-    switch(page)
-    {
-    case 0x01:
-        pageMap=&genericDesktopPage;
-        break;
-    case 0x08:
-        pageMap=&ledPage;
-        break;
-    default:
-        return QString("0x%1").arg(usage, 2,16,QChar('0'));
-    }
-
-    if(const auto it=pageMap->find(usage); it!=pageMap->end())
-    {
-        if(includeHex)
-            return QString("%1 (0x%2)").arg(it->second).arg(usage, 2,16,QChar('0'));
-        return it->second;
-    }
-    return QString("0x%1").arg(usage, 2,16,QChar('0'));
-}
-
-int32_t getItemDataSigned(const uint8_t*const data, const unsigned size)
-{
-    assert(size<=4); // This is only for Short items
-
-    switch(size)
-    {
-    case 0: return 0; // a valid case that may encode a zero value
-    case 1: return int8_t(data[0]); // sign-extend
-    case 2: return int16_t(data[1]<<8 | data[0]);
-    case 4: return uint32_t(data[3])<<24 | data[2]<<16 | data[1]<<8 | data[0]; // cast prevents UB
-    }
-
-    throw std::logic_error("getItemData() called for long item");
-}
-
-uint32_t getItemDataUnsigned(const uint8_t*const data, const unsigned size)
-{
-    assert(size<=4); // This is only for Short items
-
-    switch(size)
-    {
-    case 0: return 0; // a valid case that may encode a zero value
-    case 1: return data[0];
-    case 2: return data[1]<<8 | data[0];
-    case 4: return uint32_t(data[3])<<24 | data[2]<<16 | data[1]<<8 | data[0]; // cast prevents UB
-    }
-
-    throw std::logic_error("getItemData() called for long item");
-}
-
-QString formatInOutFeatItem(const MainItemTag tag, const unsigned dataValue)
-{
-    return QString("%0 (%1, %2, %3%4%5%6%7%8%9)").arg(tag==MIT_INPUT ? QObject::tr("Input") :
-                                                      tag==MIT_OUTPUT? QObject::tr("Output"):
-                                                      tag==MIT_FEATURE ? QObject::tr("Feature") : "(my bug, please report)")
-                                                 .arg((dataValue&1) ? QObject::tr("Constant") : QObject::tr("Data"))
-                                                 .arg((dataValue&2) ? QObject::tr("Variable") : QObject::tr("Array"))
-                                                 .arg((dataValue&4) ? QObject::tr("Relative") : QObject::tr("Absolute"))
-                                                 .arg((dataValue&8)     ? QObject::tr(", Wrap")                 : "")
-                                                 .arg((dataValue&0x10)  ? QObject::tr(", Nonlinear")            : "")
-                                                 .arg((dataValue&0x20)  ? QObject::tr(", No Preferred State")   : "")
-                                                 .arg((dataValue&0x40)  ? QObject::tr(", Has Null State")       : "")
-                                                 .arg((dataValue&0x80)  ? QObject::tr(", Volatile")             : "")
-                                                 .arg((dataValue&0x100) ? QObject::tr(", Is Buffered Bytes")    : "");
-}
-
-QString usagePageName(const unsigned page)
+QString usagePageName(const unsigned page, bool defaultToHex=true)
 {
     switch(page)
     {
@@ -309,7 +240,94 @@ QString usagePageName(const unsigned page)
         return QObject::tr("FIDO Alliance");
         break;
     }
+    if(defaultToHex)
+        return QString("0x%1").arg(page, 2, 16, QChar('0'));
     return {};
+}
+
+const std::unordered_map<uint16_t, QString>* usagePageMap(const uint16_t usagePage)
+{
+    switch(usagePage)
+    {
+    case 0x01: return &genericDesktopPage;
+    case 0x08: return &ledPage;
+    default:   return nullptr;
+    }
+}
+
+DEFINE_EXPLICIT_BOOL(IncludeHex);
+DEFINE_EXPLICIT_BOOL(ShowPage);
+QString usageName(const uint32_t usage, const IncludeHex includeHex=IncludeHex{false}, const ShowPage showPage=ShowPage{true})
+{
+    const auto page = usage>>16;
+
+    if(const auto pageMap=usagePageMap(page))
+    {
+        if(const auto it=pageMap->find(usage); it!=pageMap->end())
+        {
+            const auto pageName=usagePageName(page, true);
+            const auto hex = includeHex ?  QString(" (0x%3)").arg(usage, 2,16,QChar('0')) : "";
+            if(showPage)
+                return QString("%1 {%2%3}").arg(pageName).arg(it->second).arg(hex);
+            else
+                return QString("%2%3").arg(it->second).arg(hex);
+        }
+    }
+
+    if(showPage)
+    {
+        if(const auto pageName=usagePageName(page, false); !pageName.isEmpty())
+            return QString("%1 {id=0x%2}").arg(pageName).arg(usage&0xffff, 2,16,QChar('0'));
+        return QString("0x%1").arg(usage, 2,16,QChar('0'));
+    }
+
+    return QString("0x%1").arg(usage&0xffff, 2,16,QChar('0'));
+}
+
+int32_t getItemDataSigned(const uint8_t*const data, const unsigned size)
+{
+    assert(size<=4); // This is only for Short items
+
+    switch(size)
+    {
+    case 0: return 0; // a valid case that may encode a zero value
+    case 1: return int8_t(data[0]); // sign-extend
+    case 2: return int16_t(data[1]<<8 | data[0]);
+    case 4: return uint32_t(data[3])<<24 | data[2]<<16 | data[1]<<8 | data[0]; // cast prevents UB
+    }
+
+    throw std::logic_error("getItemData() called for long item");
+}
+
+uint32_t getItemDataUnsigned(const uint8_t*const data, const unsigned size)
+{
+    assert(size<=4); // This is only for Short items
+
+    switch(size)
+    {
+    case 0: return 0; // a valid case that may encode a zero value
+    case 1: return data[0];
+    case 2: return data[1]<<8 | data[0];
+    case 4: return uint32_t(data[3])<<24 | data[2]<<16 | data[1]<<8 | data[0]; // cast prevents UB
+    }
+
+    throw std::logic_error("getItemData() called for long item");
+}
+
+QString formatInOutFeatItem(const MainItemTag tag, const unsigned dataValue)
+{
+    return QString("%0 (%1, %2, %3%4%5%6%7%8%9)").arg(tag==MIT_INPUT ? QObject::tr("Input") :
+                                                      tag==MIT_OUTPUT? QObject::tr("Output"):
+                                                      tag==MIT_FEATURE ? QObject::tr("Feature") : "(my bug, please report)")
+                                                 .arg((dataValue&1) ? QObject::tr("Constant") : QObject::tr("Data"))
+                                                 .arg((dataValue&2) ? QObject::tr("Variable") : QObject::tr("Array"))
+                                                 .arg((dataValue&4) ? QObject::tr("Relative") : QObject::tr("Absolute"))
+                                                 .arg((dataValue&8)     ? QObject::tr(", Wrap")                 : "")
+                                                 .arg((dataValue&0x10)  ? QObject::tr(", Nonlinear")            : "")
+                                                 .arg((dataValue&0x20)  ? QObject::tr(", No Preferred State")   : "")
+                                                 .arg((dataValue&0x40)  ? QObject::tr(", Has Null State")       : "")
+                                                 .arg((dataValue&0x80)  ? QObject::tr(", Volatile")             : "")
+                                                 .arg((dataValue&0x100) ? QObject::tr(", Is Buffered Bytes")    : "");
 }
 
 struct DescriptionState
@@ -333,9 +351,9 @@ struct DescriptionState
 
     struct LocalItems
     {
-        std::deque<uint16_t> usages;
-        std::optional<uint16_t> usageMin;
-        std::optional<uint16_t> usageMax;
+        std::deque<uint32_t> usages;
+        std::optional<uint32_t> usageMin;
+        std::optional<uint32_t> usageMax;
         std::optional<unsigned> designatorIndex;
         std::optional<unsigned> designatorMin;
         std::optional<unsigned> designatorMax;
@@ -355,9 +373,8 @@ struct DescriptionState
 struct ReportElement
 {
     unsigned bitSize;
-    uint16_t usagePage;
-    std::vector<uint16_t> usages; // discrete usages for array element; single usage for variable
-	std::optional<uint16_t> usageMin, usageMax; // these are used only for array elements
+    std::vector<uint32_t> usages; // discrete usages for array element; single usage for variable
+	std::optional<uint32_t> usageMin, usageMax; // these are used only for array elements
     unsigned multiplicity=1; // if the element is an array, this is its number of elements
     bool isArray=false;
 };
@@ -375,7 +392,6 @@ struct ReportStructure
         {
             ReportElement elem;
             elem.bitSize=state.global.reportSize.value();
-            elem.usagePage=state.global.usagePage.value();
             elem.isArray=true;
             elem.multiplicity=state.global.reportCount.value();
             elem.usages.resize(state.local.usages.size());
@@ -390,7 +406,6 @@ struct ReportStructure
             {
                 ReportElement elem;
                 elem.bitSize=state.global.reportSize.value();
-                elem.usagePage=state.global.usagePage.value();
                 if(state.local.usageMin)
                 {
                     if(!state.local.usages.empty())
@@ -399,7 +414,7 @@ struct ReportStructure
                         state.local.usages.pop_front();
                     }
                     else if(*state.local.usageMin+k <= *state.local.usageMax)
-                        elem.usages = {uint16_t(*state.local.usageMin+k)};
+                        elem.usages = {*state.local.usageMin+k};
                     else
                     {
                         // padding
@@ -451,31 +466,28 @@ void addReportsTreeItem(QTreeWidgetItem*const root, std::vector<ReportStructure>
             repItem->addChild(new QTreeWidgetItem{{QObject::tr("Report ID: 0x%1").arg(*report.reportId, 2,16,QChar('0'))}});
         for(const auto elem : report.elements)
         {
-            const auto usagePageName=::usagePageName(elem.usagePage);
             if(!elem.usages.empty() || elem.usageMin)
             {
                 if(elem.isArray)
                 {
                     QString possibleUsages;
                     for(const auto usage : elem.usages)
-                        possibleUsages += QString("%1, ").arg(usageName(elem.usagePage, usage));
+                        possibleUsages += QString("%1, ").arg(usageName(usage));
                     if(elem.usageMin)
-                        possibleUsages += QString("%1 — %2").arg(usageName(elem.usagePage,*elem.usageMin,true))
-                                                            .arg(usageName(elem.usagePage,*elem.usageMax,true));
+                        possibleUsages += QString("%1 — %2").arg(usageName(*elem.usageMin,IncludeHex{}))
+                                                            .arg(usageName(*elem.usageMax,IncludeHex{}));
                     if(possibleUsages.endsWith(", "))
                         possibleUsages.chop(2);
-                    repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-element array of %2-bit items, usage page: %3, possible usages: %4")
+                    repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-element array of %2-bit items, possible usages: %3")
                                                           .arg(elem.multiplicity)
                                                           .arg(elem.bitSize)
-                                                          .arg(usagePageName.isEmpty() ? QString("0x%1").arg(elem.usagePage, 2,16,QChar('0')) : usagePageName)
                                                           .arg(possibleUsages)}});
                 }
                 else
                 {
-                    repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-bit data, usage page: %2, usage: %3")
+                    repItem->addChild(new QTreeWidgetItem{{QObject::tr("%1-bit data, usage: %2")
                                                           .arg(elem.bitSize)
-                                                          .arg(usagePageName.isEmpty() ? QString("0x%1").arg(elem.usagePage, 2,16,QChar('0')) : usagePageName)
-                                                          .arg(usageName(elem.usagePage, elem.usages[0]))}});
+                                                          .arg(usageName(elem.usages[0], IncludeHex{false}, ShowPage{true}))}});
                 }
             }
             else
@@ -613,13 +625,9 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont,
                 switch(tag)
                 {
                 case GIT_USAGE_PAGE:
-                {
-                    const auto name=usagePageName(dataValueU);
-                    item->setData(1, Qt::DisplayRole, name.isEmpty() ? QObject::tr("Usage Page: 0x%1").arg(dataValueU, 2, 16, QChar('0'))
-                                                                     : QObject::tr("Usage Page: %1").arg(name));
+                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Page: %1").arg(usagePageName(dataValueU)));
                     dscStates.top().global.usagePage=dataValueU;
                     break;
-                }
                 case GIT_LOG_MIN:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Logical Minimum: %1").arg(dataValueS));
                     dscStates.top().global.logicalMin=dataValueS;
@@ -672,46 +680,46 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont,
                 switch(tag)
                 {
                 case LIT_USAGE:
-                    if(dataSize>=3)
+                    if(dataSize>2)
                     {
-                        const uint16_t page = dataValueU>>16;
-                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Page: %1, usage ID: %2").arg(usagePageName(page))
-                                                                                                     .arg(usageName(page, dataValueU)));
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage: %1").arg(usageName(dataValueU, IncludeHex{false}, ShowPage{})));
+                        dscStates.top().local.usages.push_back(dataValueU);
                     }
                     else
                     {
-                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage: %1")
-                                                                .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU)));
+                        const auto page = dscStates.top().global.usagePage.value();
+                        const auto usage = uint32_t(page)<<16 | dataValueU;
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage: %1").arg(usageName(usage, IncludeHex{false}, ShowPage{false})));
+                        dscStates.top().local.usages.push_back(usage);
                     }
-                    dscStates.top().local.usages.push_back(dataValueU);
                     break;
                 case LIT_USAGE_MIN:
-                    if(dataSize>=3)
+                    if(dataSize>2)
                     {
-                        const uint16_t page = dataValueU>>16;
-                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: page: %1, ID: %2").arg(usagePageName(page))
-                                                                                                        .arg(usageName(page, dataValueU, true)));
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: %1").arg(usageName(dataValueU, IncludeHex{})));
+                        dscStates.top().local.usageMin=dataValueU;
                     }
                     else
                     {
-                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: %1")
-                                                                .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU, true)));
+                        const auto page = dscStates.top().global.usagePage.value();
+                        const auto usage = uint32_t(page)<<16 | dataValueU;
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: %1").arg(usageName(usage, IncludeHex{})));
+                        dscStates.top().local.usageMin = uint32_t(page)<<16 | dataValueU;
                     }
-                    dscStates.top().local.usageMin=dataValueU;
                     break;
                 case LIT_USAGE_MAX:
-                    if(dataSize>=3)
+                    if(dataSize>2)
                     {
-                        const uint16_t page = dataValueU>>16;
-                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: page: %1, ID: %2").arg(usagePageName(page))
-                                                                                                        .arg(usageName(page, dataValueU, true)));
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: %1").arg(usageName(dataValueU, IncludeHex{})));
+                        dscStates.top().local.usageMax=dataValueU;
                     }
                     else
                     {
-                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: %1")
-                                                                .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU, true)));
+                        const auto page = dscStates.top().global.usagePage.value();
+                        const auto usage = uint32_t(page)<<16 | dataValueU;
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: %1").arg(usageName(usage, IncludeHex{})));
+                        dscStates.top().local.usageMax = uint32_t(page)<<16 | dataValueU;
                     }
-                    dscStates.top().local.usageMax=dataValueU;
                     break;
                 case LIT_DESIG_IDX:
                     item->setData(1, Qt::DisplayRole, QObject::tr("Designator Index: %1").arg(dataValueU));

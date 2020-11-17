@@ -7,6 +7,15 @@
 #include <string_view>
 #include <QString>
 
+#define DEFINE_EXPLICIT_BOOL(Type)          \
+struct Type                                 \
+{                                           \
+    bool on=true;                           \
+    explicit Type()=default;                \
+    explicit Type(bool on) : on(on) {}      \
+    operator bool() const { return on; }    \
+}
+
 inline bool startsWith(std::string_view line, std::string_view beginning)
 {
     if(line.size() < beginning.size()) return false;
