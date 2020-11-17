@@ -276,9 +276,9 @@ QString usageName(const uint32_t usage, const IncludeHex includeHex=IncludeHex{f
         if(const auto it=pageMap->find(usage); it!=pageMap->end())
         {
             const auto pageName=usagePageName(page, true);
-            const auto hex = includeHex ?  QString(" (0x%3)").arg(usage, 2,16,QChar('0')) : "";
+            const auto hex = includeHex ?  QString(" (ext. usage 0x%3)").arg(usage, 2,16,QChar('0')) : "";
             if(showPage)
-                return QString("%1 {%2%3}").arg(pageName).arg(it->second).arg(hex);
+                return QString("%1 {%2}%3").arg(pageName).arg(it->second).arg(hex);
             else
                 return QString("%2%3").arg(it->second).arg(hex);
         }
