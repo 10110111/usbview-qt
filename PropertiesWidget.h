@@ -2,7 +2,7 @@
 
 #include <QTreeWidget>
 
-class Device;
+struct Device;
 class PropertiesWidget : public QTreeWidget
 {
     bool wantExtToolOutput_=false;

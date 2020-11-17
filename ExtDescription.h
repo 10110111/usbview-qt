@@ -1,5 +1,5 @@
 #pragma once
 
-class Device;
+struct Device;
 class QTreeWidgetItem;
 QTreeWidgetItem* getExternalDescription(Device const& dev);
