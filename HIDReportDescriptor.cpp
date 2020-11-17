@@ -161,6 +161,16 @@ const std::unordered_map<uint16_t, QString> ledPage={
     {0x0006, "Power"},
     {0x0007, "Shift"},
 // TODO: complete
+    {0x0047, "Usage Indicator Color"},
+    {0x0048, "Indicator Red"},
+    {0x0049, "Indicator Green"},
+    {0x004A, "Indicator Amber"},
+    {0x004B, "Generic Indicator"},
+    {0x004C, "System Suspend"},
+    {0x004D, "External Power Connected"},
+    {0x004E, "Indicator Blue"},
+    {0x004F, "Indicator Orange"},
+// TODO: complete
 };
 
 QString usagePageName(const unsigned page, bool defaultToHex=true)
