@@ -173,6 +173,97 @@ const std::unordered_map<uint16_t, QString> ledPage={
 // TODO: complete
 };
 
+const std::unordered_map<uint16_t, QString> consumerControlPage={
+    {0x0000, "Undefined"},
+    {0x0001, "Consumer Control"},
+    {0x0002, "Numeric Key Pad"},
+    {0x0003, "Programmable Buttons"},
+    {0x0004, "Microphone"},
+    {0x0005, "Headphone"},
+    {0x0006, "Graphic Equalizer"},
+// 07-1f Reserved
+    {0x0020, "+10"},
+    {0x0021, "+100"},
+// TODO: complete
+    {0x00b0, "Play"},
+    {0x00b1, "Pause"},
+    {0x00b2, "Record"},
+    {0x00b3, "Fast Forward"},
+    {0x00b4, "Rewind"},
+    {0x00b5, "Scan Next Track"},
+    {0x00b6, "Scan Previous Track"},
+    {0x00b7, "Stop"},
+    {0x00b8, "Eject"},
+    {0x00b9, "Random Play"},
+    {0x00ba, "Select Disc"},
+    {0x00bb, "Enter Disc"},
+    {0x00bc, "Repeat"},
+    {0x00bd, "Tracking"},
+    {0x00be, "Track Normal"},
+    {0x00bf, "Slow Tracking"},
+// TODO: complete
+    {0x00ca, "Tracking Increment"},
+    {0x00cb, "Tracking Decrement"},
+    {0x00cc, "Stop/Eject"},
+    {0x00cd, "Play/Pause"},
+    {0x00ce, "Play/Skip"},
+    {0x00cf, "Voice Command"},
+// TODO: complete
+    {0x00e0, "Volume"},
+    {0x00e1, "Balance"},
+    {0x00e2, "Mute"},
+    {0x00e3, "Bass"},
+    {0x00e4, "Treble"},
+    {0x00e5, "Bass Boost"},
+    {0x00e6, "Surround Mode"},
+    {0x00e7, "Loudness"},
+    {0x00e8, "MPX"},
+    {0x00e9, "Volume Increment"},
+    {0x00ea, "Volume Decrement"},
+// eb-ef Reserved
+    {0x00f0, "Speed Select"},
+    {0x00f1, "Playback Speed"},
+// TODO: complete
+    {0x0180, "Application Launch Buttons"},
+    {0x0181, "AL Launch Button Configuration Tool"},
+    {0x0182, "AL Programmable Button Configuration"},
+    {0x0183, "AL Consumer Control Configuration"},
+    {0x0184, "AL Word Processor"},
+    {0x0185, "AL Text Editor"},
+    {0x0186, "AL Spreadsheet"},
+    {0x0187, "AL Graphics Editor"},
+    {0x0188, "AL Presentation App"},
+    {0x0189, "AL Database App"},
+    {0x018a, "AL Email Reader"},
+    {0x018b, "AL Newsreader"},
+    {0x018c, "AL Voicemail"},
+    {0x018d, "AL Contacts/Address Book"},
+    {0x018e, "AL Calendar/Schedule"},
+    {0x018f, "AL Task/Project Manager"},
+    {0x0190, "AL Log/Journal/Timecard"},
+    {0x0191, "AL Checkbook/Finance"},
+    {0x0192, "AL Calculator"},
+// TODO: complete
+    {0x0220, "AC Find and Replace"},
+    {0x0221, "AC Search"},
+    {0x0222, "AC Go To"},
+    {0x0223, "AC Home"},
+    {0x0224, "AC Back"},
+    {0x0225, "AC Forward"},
+    {0x0226, "AC Stop"},
+    {0x0227, "AC Refresh"},
+    {0x0228, "AC Previous Link"},
+    {0x0229, "AC Next Link"},
+    {0x022a, "AC Bookmarks"},
+    {0x022b, "AC History"},
+    {0x022c, "AC Subscriptions"},
+    {0x022d, "AC Zoom In"},
+    {0x022e, "AC Zoom Out"},
+    {0x022f, "AC Zoom"},
+    {0x0230, "AC Full Screen View"},
+    {0x0231, "AC Normal View"},
+};
+
 QString usagePageName(const unsigned page, bool defaultToHex=true)
 {
     switch(page)
@@ -261,6 +352,7 @@ const std::unordered_map<uint16_t, QString>* usagePageMap(const uint16_t usagePa
     {
     case 0x01: return &genericDesktopPage;
     case 0x08: return &ledPage;
+    case 0x0c: return &consumerControlPage;
     default:   return nullptr;
     }
 }
