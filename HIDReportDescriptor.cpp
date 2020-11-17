@@ -672,19 +672,48 @@ void parseHIDReportDescriptor(QTreeWidgetItem*const root, QFont const& baseFont,
                 switch(tag)
                 {
                 case LIT_USAGE:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage: %1")
-                                                            .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU)));
-                    check(dataValueU<=0xffff);
+                    if(dataSize>=3)
+                    {
+                        const uint16_t page = dataValueU>>16;
+                        dscStates.top().global.usagePage=page;
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Page: %1, usage ID: %2").arg(usagePageName(page))
+                                                                                                     .arg(usageName(page, dataValueU)));
+                    }
+                    else
+                    {
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage: %1")
+                                                                .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU)));
+                    }
                     dscStates.top().local.usages.push_back(dataValueU);
                     break;
                 case LIT_USAGE_MIN:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: %1")
-                                                            .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU, true)));
+                    if(dataSize>=3)
+                    {
+                        const uint16_t page = dataValueU>>16;
+                        dscStates.top().global.usagePage=page;
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: page: %1, ID: %2").arg(usagePageName(page))
+                                                                                                        .arg(usageName(page, dataValueU, true)));
+                    }
+                    else
+                    {
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Minimum: %1")
+                                                                .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU, true)));
+                    }
                     dscStates.top().local.usageMin=dataValueU;
                     break;
                 case LIT_USAGE_MAX:
-                    item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: %1")
-                                                            .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU, true)));
+                    if(dataSize>=3)
+                    {
+                        const uint16_t page = dataValueU>>16;
+                        dscStates.top().global.usagePage=page;
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: page: %1, ID: %2").arg(usagePageName(page))
+                                                                                                        .arg(usageName(page, dataValueU, true)));
+                    }
+                    else
+                    {
+                        item->setData(1, Qt::DisplayRole, QObject::tr("Usage Maximum: %1")
+                                                                .arg(usageName(dscStates.top().global.usagePage.value(), dataValueU, true)));
+                    }
                     dscStates.top().local.usageMax=dataValueU;
                     break;
                 case LIT_DESIG_IDX:
