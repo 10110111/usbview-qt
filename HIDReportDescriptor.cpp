@@ -264,6 +264,20 @@ const std::unordered_map<uint16_t, QString> consumerControlPage={
     {0x0231, "AC Normal View"},
 };
 
+const std::unordered_map<uint16_t, QString> keyboardPage={
+    {0x0000, "Reserved"},
+// TODO: complete
+    {0x00e0, "Keyboard Left Control"},
+    {0x00e1, "Keyboard Left Shift"},
+    {0x00e2, "Keyboard Left Alt"},
+    {0x00e3, "Keyboard Left GUI"},
+    {0x00e4, "Keyboard Right Control"},
+    {0x00e5, "Keyboard Right Shift"},
+    {0x00e6, "Keyboard Right Alt"},
+    {0x00e7, "Keyboard Right GUI"},
+// e8-ffff Reserved
+};
+
 QString usagePageName(const unsigned page, bool defaultToHex=true)
 {
     switch(page)
@@ -351,6 +365,7 @@ const std::unordered_map<uint16_t, QString>* usagePageMap(const uint16_t usagePa
     switch(usagePage)
     {
     case 0x01: return &genericDesktopPage;
+    case 0x07: return &keyboardPage;
     case 0x08: return &ledPage;
     case 0x0c: return &consumerControlPage;
     default:   return nullptr;
